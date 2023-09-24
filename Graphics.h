@@ -8,11 +8,12 @@
 #include <directxtk/SimpleMath.h>
 
 #include "Model.h"
+#include "Camera.h"
 
 using Microsoft::WRL::ComPtr;
 class Graphics
 {
-public:
+private:
     HWND m_window;
     int m_width, m_height;
 
@@ -33,6 +34,7 @@ public:
     ComPtr<ID3D11PixelShader> m_basicPixelShader;
     ComPtr<ID3D11InputLayout> m_basicInputLayout;
 
+    std::shared_ptr<Camera> cam;
     std::shared_ptr<Geometry> model;
 
 
@@ -43,6 +45,12 @@ public:
     bool Init();
     bool InitD3D(const int screenWidth, const int screenHeight);
     bool InitShaders();
+    bool SetupGUIBackEnd();
 
+    void Update(float dt);
     void Render();
+    void Present();
+
+    void UpdateGUI();
+    float GetAspectRatio();
 };

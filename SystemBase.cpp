@@ -1,8 +1,13 @@
 
 #include <iostream>
+#include <imgui.h>
+#include <imgui_impl_dx11.h>
+#include <imgui_impl_win32.h>
 
 #include "SystemBase.h"
 
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
+	LPARAM lParam);
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 using namespace std;
@@ -13,6 +18,9 @@ bool SystemBase::Init()
 		return false;
 
 	if (!InitRenderer())
+		return false;
+
+	if (!InitGUI())
 		return false;
 
 	return true;
@@ -73,6 +81,24 @@ bool SystemBase::InitRenderer()
 	return true;
 }
 
+bool SystemBase::InitGUI()
+{
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	(void)io;
+	io.DisplaySize = ImVec2(float(m_width), float(m_height));
+	ImGui::StyleColorsLight();
+
+	// Setup Platform/Renderer backends
+	if (!m_renderer->SetupGUIBackEnd())
+		return false;
+
+	if (!ImGui_ImplWin32_Init(m_window)) 
+		return false;
+
+	return true;
+}
 void SystemBase::Run()
 {
 	MSG msg = {};
@@ -85,16 +111,34 @@ void SystemBase::Run()
 		}
 		else
 		{
+			ImGui_ImplDX11_NewFrame(); // GUI 프레임 시작
+			ImGui_ImplWin32_NewFrame();
+
+			ImGui::NewFrame(); // 어떤 것들을 렌더링 할지 기록 시작
+			ImGui::Begin("Scene Control");
+
+			// ImGui가 측정해주는 Framerate 출력
+			ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
+				ImGui::GetIO().Framerate);
+
+			// UpdateGUI(); // 추가적으로 사용할 GUI
+			ImGui::End();
+			ImGui::Render(); // 렌더링할 것들 기록 끝
+
+			m_renderer->Update(ImGui::GetIO().DeltaTime);
 			m_renderer->Render();
-			m_renderer->m_swapChain->Present(1, 0);
+
+            ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // GUI 렌더링
+			
+			m_renderer->Present();
 		}
 	}
 }
 
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	/*if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-		return true;*/
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+		return true;
 
 	switch (msg)
 	{

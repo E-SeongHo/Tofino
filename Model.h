@@ -14,17 +14,26 @@ inline void ThrowIfFailed(HRESULT hr) {
     }
 }
 
-struct Vertex 
-{ // Match with input element
+//struct Vertex 
+//{ // Match with input element
+//    DirectX::SimpleMath::Vector3 pos;
+//    DirectX::SimpleMath::Vector3 color;
+//};
+
+struct Vertex
+{
     DirectX::SimpleMath::Vector3 pos;
     DirectX::SimpleMath::Vector3 color;
+    DirectX::SimpleMath::Vector3 normal;
+    DirectX::SimpleMath::Vector2 uv;
 };
 
-struct MVPBuffer 
+// 16Byte allign
+struct WVPBuffer // Must Store as a Column Matrix 
 {
-    DirectX::SimpleMath::Matrix world; // equal model matrix
+    DirectX::SimpleMath::Matrix world; // equal model matrix 
     DirectX::SimpleMath::Matrix view;
-    DirectX::SimpleMath::Matrix projection;
+    DirectX::SimpleMath::Matrix projection; 
 };
 
 using Microsoft::WRL::ComPtr;
@@ -36,7 +45,7 @@ protected:
     ComPtr<ID3D11Buffer> m_constBufferGPU;
     UINT m_indexCount;
 
-    MVPBuffer m_constBufferCPU;
+    WVPBuffer m_constBufferCPU;
 
     std::vector<Vertex> m_vertices;
     std::vector<uint16_t> m_indices;
@@ -44,8 +53,13 @@ protected:
 public:
     virtual void Init() = 0;
     void CreateBuffers(ComPtr<ID3D11Device>& device);
+    void UpdateBuffer(ComPtr<ID3D11DeviceContext>& context);
     void Render(ComPtr<ID3D11DeviceContext>& context);
+    DirectX::SimpleMath::Matrix GetWorldMatrix();
 
+    void UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldColumn);
+    void UpdateViewMatrix(DirectX::SimpleMath::Matrix viewColumn); // model 많아지면 global로 분리
+    void UpdateProjectionMatrix(DirectX::SimpleMath::Matrix projColumn); // global 분리
 
 protected:
     static void CreateVertexBuffer(ComPtr<ID3D11Device>& device, const std::vector<Vertex>& vertices, ComPtr<ID3D11Buffer>& vertexBuffer)
@@ -84,8 +98,7 @@ protected:
 
         ThrowIfFailed(device->CreateBuffer(&ds, &data, indexBuffer.GetAddressOf()));
     }
-
-    static void CreateConstantBuffer(ComPtr<ID3D11Device>& device, const MVPBuffer& cbufferData, ComPtr<ID3D11Buffer>& constantBuffer)
+    static void CreateConstantBuffer(ComPtr<ID3D11Device>& device, const WVPBuffer& cbufferData, ComPtr<ID3D11Buffer>& constantBuffer)
     {
         D3D11_BUFFER_DESC cbDesc;
         cbDesc.ByteWidth = sizeof(cbufferData);
@@ -103,9 +116,24 @@ protected:
 
         ThrowIfFailed(device->CreateBuffer(&cbDesc, &InitData, constantBuffer.GetAddressOf()));
     }
+
+    static void UpdateConstantBuffer(ComPtr<ID3D11DeviceContext>& context, const WVPBuffer& updateData, ComPtr<ID3D11Buffer>& constantBuffer)
+    {
+        D3D11_MAPPED_SUBRESOURCE resource;
+        context->Map(constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+        memcpy(resource.pData, &updateData, sizeof(updateData));
+        context->Unmap(constantBuffer.Get(), 0);
+    }
 };
 
 class Triangle : public Geometry
 {
+public:
+    void Init() override;
+};
+
+class Cube : public Geometry
+{
+public:
     void Init() override;
 };
