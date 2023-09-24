@@ -7,24 +7,7 @@
 #include <vector>
 #include <directxtk/SimpleMath.h>
 
-
-inline void ThrowIfFailed(HRESULT hr) {
-    if (FAILED(hr)) {
-        // Set a breakpoint on this line to catch Win32 API errors.
-        throw std::exception();
-    }
-}
-
-struct Vertex { // Match with inputelement
-    DirectX::SimpleMath::Vector3 pos;
-    DirectX::SimpleMath::Vector3 color;
-};
-
-struct ConstantBuffer {
-    DirectX::SimpleMath::Matrix model;
-    DirectX::SimpleMath::Matrix view;
-    DirectX::SimpleMath::Matrix projection;
-};
+#include "Model.h"
 
 using Microsoft::WRL::ComPtr;
 class Graphics
@@ -50,28 +33,16 @@ public:
     ComPtr<ID3D11PixelShader> m_basicPixelShader;
     ComPtr<ID3D11InputLayout> m_basicInputLayout;
 
-    // temp
-    ComPtr<ID3D11Buffer> triangleBuffer;
-    ComPtr<ID3D11Buffer> triangleIndexBuffer;
-    ComPtr<ID3D11Buffer> triangleConstantBuffer;
-    UINT triangleIndexCount;
+    std::shared_ptr<Geometry> model;
 
-    ConstantBuffer triangleConst;
 
 public:
     Graphics(HWND hWnd, const int screenWidth, const int screenHeight);
     // ~Graphics();
     
-    void MakeTriangle();
-
     bool Init();
     bool InitD3D(const int screenWidth, const int screenHeight);
     bool InitShaders();
-    void CreateVertexBuffer(const std::vector<Vertex>& vertices, ComPtr<ID3D11Buffer>& vertexBuffer);
-    void CreateIndexBuffer(const std::vector<uint16_t>& indices, ComPtr<ID3D11Buffer>& indexBuffer);
-    void CreateConstantBuffer(const ConstantBuffer& cbufferData, ComPtr<ID3D11Buffer>& constantBuffer);
 
     void Render();
-
-    bool CreateVertexShader();
 };
