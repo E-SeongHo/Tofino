@@ -5,20 +5,10 @@
 #include <wrl.h> 
 #include <directxtk/SimpleMath.h>
 #include <vector>
+#include <string>
 
-// TODO :: Model에 있는게 안어울림.. -> common 클래스로?
-inline void ThrowIfFailed(HRESULT hr) {
-    if (FAILED(hr)) {
-        // Set a breakpoint on this line to catch Win32 API errors.
-        throw std::exception();
-    }
-}
+#include "Debug.h"
 
-//struct Vertex 
-//{ // Match with input element
-//    DirectX::SimpleMath::Vector3 pos;
-//    DirectX::SimpleMath::Vector3 color;
-//};
 
 struct Vertex
 {
@@ -28,7 +18,7 @@ struct Vertex
     DirectX::SimpleMath::Vector2 uv;
 };
 
-// 16Byte allign
+// 16Byte align
 struct WVPBuffer // Must Store as a Column Matrix 
 {
     DirectX::SimpleMath::Matrix world; // equal model matrix 
@@ -117,6 +107,7 @@ protected:
         ThrowIfFailed(device->CreateBuffer(&cbDesc, &InitData, constantBuffer.GetAddressOf()));
     }
 
+    
     static void UpdateConstantBuffer(ComPtr<ID3D11DeviceContext>& context, const WVPBuffer& updateData, ComPtr<ID3D11Buffer>& constantBuffer)
     {
         D3D11_MAPPED_SUBRESOURCE resource;
@@ -136,4 +127,21 @@ class Cube : public Geometry
 {
 public:
     void Init() override;
+    void ReverseIndices();
+};
+
+
+class EnvMap 
+{
+private:
+    Cube m_mesh;
+
+    ComPtr<ID3D11ShaderResourceView> m_envSRV;
+    // For IBL
+    ComPtr<ID3D11ShaderResourceView> m_specularSRV;
+    ComPtr<ID3D11ShaderResourceView> m_irradianceSRV;
+    ComPtr<ID3D11ShaderResourceView> m_brdfLookUpSRV;
+
+public:
+    void Init(ComPtr<ID3D11Device>& device, const wchar_t* filePath);
 };

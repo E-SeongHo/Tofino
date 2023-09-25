@@ -9,6 +9,7 @@
 
 #include "Model.h"
 #include "Camera.h"
+#include "ShaderManager.h"
 
 using Microsoft::WRL::ComPtr;
 class Graphics
@@ -44,7 +45,6 @@ public:
     
     bool Init();
     bool InitD3D(const int screenWidth, const int screenHeight);
-    bool InitShaders();
     bool SetupGUIBackEnd();
 
     void Update(float dt);

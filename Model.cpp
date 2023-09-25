@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "Model.h"
+#include "TextureLoader.h"
 
 using namespace std;
 using DirectX::SimpleMath::Vector3;
@@ -205,4 +206,18 @@ void Cube::Init()
     m_constBufferCPU.world = Matrix();
     m_constBufferCPU.view = Matrix();
     m_constBufferCPU.projection = Matrix();
+}
+
+void Cube::ReverseIndices()
+{
+    std::reverse(m_indices.begin(), m_indices.end());
+}
+
+void EnvMap::Init(ComPtr<ID3D11Device>& device, const wchar_t* filePath)
+{
+    m_mesh.Init();
+    m_mesh.ReverseIndices();
+
+    TextureLoader::CreateCubemapTexture(device, filePath, m_envSRV);
+
 }

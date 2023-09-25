@@ -10,8 +10,8 @@ using DirectX::SimpleMath::Matrix;
 
 
 Camera::Camera() :
-	m_origin(Vector3(0.0f, 0.0f, -5.0f)),
-	m_direction(Vector3(0.0f, 0.0f, 1.0f)),
+	m_origin(Vector3(0.0f, 3.0f, -5.0f)),
+	m_direction(Vector3(0.0f, -0.5f, 1.0f)),
 	m_up(Vector3(0.0f, 1.0f, 0.0f)),
 	m_nearZ(0.01f), m_farZ(100.0f), m_fovY(70.0f),
 	m_aspect(16.0f / 9.0f)

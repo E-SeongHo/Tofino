@@ -6,8 +6,6 @@
 
 #include "SystemBase.h"
 
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
-	LPARAM lParam);
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 using namespace std;
@@ -135,6 +133,19 @@ void SystemBase::Run()
 	}
 }
 
+
+void ProcessInput(HWND hWnd, WPARAM keyPress)
+{
+	switch (keyPress)
+	{
+	case VK_ESCAPE:
+		PostMessage(hWnd, WM_DESTROY, 0, 0);
+		break;
+	}
+}
+
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
@@ -159,7 +170,8 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		//std::cout << "WM_RBUTTONUP Right mouse button" << std::endl;
 		break;
 	case WM_KEYDOWN:
-		std::cout << "WM_KEYDOWN " << (int)wParam << std::endl;
+		// std::cout << "WM_KEYDOWN " << (int)wParam << std::endl;
+		ProcessInput(hWnd, wParam);
 		break;
 	case WM_DESTROY:
 		::PostQuitMessage(0);
@@ -169,3 +181,4 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	return ::DefWindowProc(hWnd, msg, wParam, lParam);
 
 }
+

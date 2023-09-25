@@ -17,6 +17,9 @@ Graphics::Graphics(HWND hWnd, const int screenWidth, const int screenHeight)
     m_screenViewport(D3D11_VIEWPORT()), cam(make_shared<Camera>())
 {
     cam->SetAspect(this->GetAspectRatio());
+    
+    // Early Initialization of Singleton
+    ShaderManager::GetInstance();
 }
 
 bool Graphics::Init()
@@ -29,7 +32,8 @@ bool Graphics::Init()
     model->Init();
     model->CreateBuffers(m_device);
 
-    InitShaders();
+    ShaderManager::GetInstance().InitShaders(m_device);
+    //InitShaders();
 
     model->UpdateViewMatrix(cam->GetViewMatrix().Transpose());
     model->UpdateProjectionMatrix(cam->GetProjectionMatrix().Transpose());
@@ -185,40 +189,6 @@ bool Graphics::InitD3D(const int screenWidth, const int screenHeight)
     return true;
 }
 
-bool Graphics::InitShaders()
-{
-    ID3DBlob* vertexBlob = nullptr;
-    ID3DBlob* pixelBlob = nullptr;
-    ID3DBlob* errorBlob = nullptr;
-
-    if (FAILED(D3DCompileFromFile(L"BasicVS.hlsl", 0, 0, "main", "vs_5_0", 0, 0, &vertexBlob, &errorBlob)))
-    {
-        if (errorBlob) {
-            std::cout << "Vertex shader compile error\n" << (char*)errorBlob->GetBufferPointer() << std::endl;
-        }
-    }
-
-    if (FAILED(D3DCompileFromFile(L"BasicPS.hlsl", 0, 0, "main", "ps_5_0", 0, 0, &pixelBlob, &errorBlob)))
-    {
-        if (errorBlob) {
-            std::cout << "Pixel shader compile error\n" << (char*)errorBlob->GetBufferPointer() << std::endl;
-        }
-    }
-
-    m_device->CreateVertexShader(vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), NULL, &m_basicVertexShader);
-    m_device->CreatePixelShader(pixelBlob->GetBufferPointer(), pixelBlob->GetBufferSize(), NULL, &m_basicPixelShader);
-
-    // Create the input layout object
-    vector<D3D11_INPUT_ELEMENT_DESC> inputElements = {
-        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0},
-    };
-
-    m_device->CreateInputLayout(inputElements.data(), UINT(inputElements.size()), vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), &m_basicInputLayout);
-
-    return true;
-}
-
 bool Graphics::SetupGUIBackEnd()
 {
     if (!ImGui_ImplDX11_Init(m_device.Get(), m_context.Get())) 
@@ -243,14 +213,14 @@ void Graphics::Render()
     m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
     m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
 
-    m_context->VSSetShader(m_basicVertexShader.Get(), 0, 0);
+    m_context->VSSetShader(ShaderManager::GetInstance().basicVS.Get(), 0, 0);
 
-    m_context->PSSetShader(m_basicPixelShader.Get(), 0, 0);
+    m_context->PSSetShader(ShaderManager::GetInstance().basicPS.Get(), 0, 0);
 
     m_context->RSSetState(m_rasterizerState.Get());
 
     // Set Vertex & Index Buffer
-    m_context->IASetInputLayout(m_basicInputLayout.Get());
+    m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
     m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     
     model->Render(m_context);
@@ -289,8 +259,5 @@ void CheckResult(HRESULT hr, ID3DBlob* errorBlob) {
     }
 }
 
-// Note : CreateInputLayout requires the vertex shader in addition to the vertex input layout.
-// because it cross checks the two to make sure the given vertex layout(parameter로 전달된) contains all the information 
-// vertex shader asks for.
-// https://www.walkerb.net/blog/dx-3/
+
 
