@@ -29,5 +29,8 @@ public:
 	ComPtr<ID3D11VertexShader> envMapVS;
 	ComPtr<ID3D11PixelShader> envMapPS;
 
+	ComPtr<ID3D11VertexShader> copyVS;
+	ComPtr<ID3D11PixelShader> toneMappingPS;
+
 	void InitShaders(ComPtr<ID3D11Device>& device);
 };

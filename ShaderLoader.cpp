@@ -17,7 +17,7 @@ void ShaderLoader::LoadVertexShader(ComPtr<ID3D11Device>& device, const std::wst
 		}
 	}
 
-	device->CreateVertexShader(vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), NULL, &vertexShader);
+	ThrowIfFailed(device->CreateVertexShader(vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), NULL, &vertexShader));
 }
 
 void ShaderLoader::LoadPixelShader(ComPtr<ID3D11Device>& device, const std::wstring& filename, 
@@ -32,7 +32,7 @@ void ShaderLoader::LoadPixelShader(ComPtr<ID3D11Device>& device, const std::wstr
 			std::cout << "Pixel shader compile error\n" << (char*)errorBlob->GetBufferPointer() << std::endl;
 		}
 	}
-	device->CreatePixelShader(pixelBlob->GetBufferPointer(), pixelBlob->GetBufferSize(), NULL, &pixelShader);
+	ThrowIfFailed(device->CreatePixelShader(pixelBlob->GetBufferPointer(), pixelBlob->GetBufferSize(), NULL, &pixelShader));
 }
 
 

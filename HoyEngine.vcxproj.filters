@@ -42,6 +42,9 @@
     <ClCompile Include="ShaderManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ToneMapping.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Graphics.h">
@@ -80,6 +83,12 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="EnvMapPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="CopyVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="ToneMappingPS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

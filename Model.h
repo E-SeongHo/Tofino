@@ -38,13 +38,16 @@ protected:
     WVPBuffer m_constBufferCPU;
 
     std::vector<Vertex> m_vertices;
-    std::vector<uint16_t> m_indices;
+    std::vector<uint32_t> m_indices;
 
 public:
     virtual void Init() = 0;
+    void ReverseIndices();
+    
     void CreateBuffers(ComPtr<ID3D11Device>& device);
     void UpdateBuffer(ComPtr<ID3D11DeviceContext>& context);
     void Render(ComPtr<ID3D11DeviceContext>& context);
+    void CopySquareRenderSetup(ComPtr<ID3D11DeviceContext>& context);
     DirectX::SimpleMath::Matrix GetWorldMatrix();
 
     void UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldColumn);
@@ -71,15 +74,15 @@ protected:
 
         ThrowIfFailed(device->CreateBuffer(&ds, &data, vertexBuffer.GetAddressOf()));
     }
-    static void CreateIndexBuffer(ComPtr<ID3D11Device>& device, const std::vector<uint16_t>& indices, ComPtr<ID3D11Buffer>& indexBuffer)
+    static void CreateIndexBuffer(ComPtr<ID3D11Device>& device, const std::vector<uint32_t>& indices, ComPtr<ID3D11Buffer>& indexBuffer)
     {
         D3D11_BUFFER_DESC ds = {};
         // ZeroMemory(&ds, sizeof(ds));
         ds.Usage = D3D11_USAGE_IMMUTABLE;
-        ds.ByteWidth = UINT(indices.size() * sizeof(uint16_t));
+        ds.ByteWidth = UINT(indices.size() * sizeof(uint32_t));
         ds.BindFlags = D3D11_BIND_INDEX_BUFFER;
         ds.CPUAccessFlags = 0;
-        ds.StructureByteStride = sizeof(uint16_t);
+        ds.StructureByteStride = sizeof(uint32_t);
 
         D3D11_SUBRESOURCE_DATA data = { 0 };
         data.pSysMem = indices.data();
@@ -123,18 +126,23 @@ public:
     void Init() override;
 };
 
+class Square : public Geometry
+{
+public:
+    void Init() override;
+};
+
 class Cube : public Geometry
 {
 public:
     void Init() override;
-    void ReverseIndices();
 };
 
 
 class EnvMap 
 {
 private:
-    Cube m_mesh;
+    Geometry* m_mesh;
 
     ComPtr<ID3D11ShaderResourceView> m_envSRV;
     // For IBL
@@ -143,5 +151,7 @@ private:
     ComPtr<ID3D11ShaderResourceView> m_brdfLookUpSRV;
 
 public:
-    void Init(ComPtr<ID3D11Device>& device, const wchar_t* filePath);
+    void Init(ComPtr<ID3D11Device>& device, const std::wstring filePath);
+
+    ~EnvMap();
 };

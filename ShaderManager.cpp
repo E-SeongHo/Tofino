@@ -22,11 +22,15 @@ void ShaderManager::InitShaders(ComPtr<ID3D11Device>& device)
 
 	// std::cout << "Vertex blob\n" << vertexBlob->GetBufferPointer() << std::endl;
 
-	// EnvMap uses same input layout
 	device->CreateInputLayout(inputElements.data(), UINT(inputElements.size()), vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), &basicInputLayout);
 	
+	// EnvMap uses same input layout
 	// vertexBlob.Reset();
-	ShaderLoader::LoadVertexShader(device, L"BasicVS.hlsl", envMapVS, vertexBlob);
-	ShaderLoader::LoadPixelShader(device, L"BasicPS.hlsl", envMapPS);
+	/*ShaderLoader::LoadVertexShader(device, L"BasicVS.hlsl", envMapVS, vertexBlob);
+	ShaderLoader::LoadPixelShader(device, L"BasicPS.hlsl", envMapPS);*/
+
+	// CopyVS uses same input layout
+	ShaderLoader::LoadVertexShader(device, L"CopyVS.hlsl", copyVS, vertexBlob);
+	ShaderLoader::LoadPixelShader(device, L"ToneMappingPS.hlsl", toneMappingPS);
 
 }

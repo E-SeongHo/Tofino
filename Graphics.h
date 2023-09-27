@@ -20,9 +20,20 @@ private:
 
     ComPtr<ID3D11Device> m_device;
     ComPtr<ID3D11DeviceContext> m_context;
-    ComPtr<ID3D11RenderTargetView> m_renderTargetView;
     ComPtr<IDXGISwapChain> m_swapChain;
-    ComPtr<ID3D11RasterizerState> m_rasterizerState;
+    ComPtr<ID3D11Texture2D> m_backBuffer; // final swapchain rendering buffer DXGI_FORMAT_R8G8B8A8_UNORM
+    ComPtr<ID3D11RenderTargetView> m_backBufferRTV; // final RTV
+    ComPtr<ID3D11RasterizerState> m_solidState;
+    ComPtr<ID3D11RasterizerState> m_wireState;
+
+    ComPtr<ID3D11Texture2D> m_hdrBuffer; // use MSAA, DXGI_FORMAT_R16G16B16A16_FLOAT
+    ComPtr<ID3D11Texture2D> m_hdrResolvedBuffer; // no MSAA, DXGI_FORMAT_R16G16B16A16_FLOAT
+
+    ComPtr<ID3D11RenderTargetView> m_hdrRTV;
+    ComPtr<ID3D11RenderTargetView> m_hdrResolvedRTV;
+
+    ComPtr<ID3D11ShaderResourceView> m_hdrSRV;
+    ComPtr<ID3D11ShaderResourceView> m_hdrResolvedSRV;
 
     ComPtr<ID3D11Texture2D> m_depthStencilBuffer;
     ComPtr<ID3D11DepthStencilView> m_depthStencilView;
@@ -30,18 +41,17 @@ private:
 
     D3D11_VIEWPORT m_screenViewport;
 
-    // Shaders
-    ComPtr<ID3D11VertexShader> m_basicVertexShader;
-    ComPtr<ID3D11PixelShader> m_basicPixelShader;
-    ComPtr<ID3D11InputLayout> m_basicInputLayout;
-
     std::shared_ptr<Camera> cam;
     std::shared_ptr<Geometry> model;
 
+    // Tone Mapping
+    Geometry* m_copySquare; // square mesh for copy
+    ComPtr<ID3D11SamplerState> m_samplerState;
+    ComPtr<ID3D11RasterizerState> m_toneState;
 
 public:
     Graphics(HWND hWnd, const int screenWidth, const int screenHeight);
-    // ~Graphics();
+    ~Graphics();
     
     bool Init();
     bool InitD3D(const int screenWidth, const int screenHeight);
@@ -53,4 +63,6 @@ public:
 
     void UpdateGUI();
     float GetAspectRatio();
+
+    void ToneMappingSetUp();
 };

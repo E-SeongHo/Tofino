@@ -1,5 +1,6 @@
 
 #include <vector>
+#include <iostream>
 
 #include "Model.h"
 #include "TextureLoader.h"
@@ -9,7 +10,10 @@ using DirectX::SimpleMath::Vector3;
 using DirectX::SimpleMath::Vector2;
 using DirectX::SimpleMath::Matrix;
 
-
+void Geometry::ReverseIndices()
+{
+    std::reverse(m_indices.begin(), m_indices.end());
+}
 void Geometry::CreateBuffers(ComPtr<ID3D11Device>& device)
 {
     Geometry::CreateVertexBuffer(device, m_vertices, m_vertexBuffer);
@@ -29,9 +33,21 @@ void Geometry::Render(ComPtr<ID3D11DeviceContext>& context)
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
     context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-    context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+    context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
     context->DrawIndexed(m_indexCount, 0, 0);
-}  
+}
+
+void Geometry::CopySquareRenderSetup(ComPtr<ID3D11DeviceContext>& context)
+{
+    // PS SET CONSTANT ( ex) gamma )
+    UINT stride = sizeof(Vertex);
+    UINT offset = 0;
+    context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+    context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+    context->DrawIndexed(m_indexCount, 0, 0);
+}
+
 
 DirectX::SimpleMath::Matrix Geometry::GetWorldMatrix()
 {
@@ -61,6 +77,51 @@ void Triangle::Init()
 
     m_indices = { 0, 1, 2 };
     m_indexCount = m_indices.size();
+
+    m_constBufferCPU.world = Matrix();
+    m_constBufferCPU.view = Matrix();
+    m_constBufferCPU.projection = Matrix();
+}
+
+void Square::Init()
+{
+    vector<Vector3> positions;
+    vector<Vector3> colors;
+    vector<Vector3> normals;
+    vector<Vector2> texcoords; 
+
+    const float scale = 1.0f;
+
+    positions.push_back(Vector3(-1.0f, 1.0f, 0.0f) * scale);
+    positions.push_back(Vector3(1.0f, 1.0f, 0.0f) * scale);
+    positions.push_back(Vector3(1.0f, -1.0f, 0.0f) * scale);
+    positions.push_back(Vector3(-1.0f, -1.0f, 0.0f) * scale);
+    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
+    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
+    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
+    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
+    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
+    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
+    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
+    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
+
+    texcoords.push_back(Vector2(0.0f, 0.0f));
+    texcoords.push_back(Vector2(1.0f, 0.0f));
+    texcoords.push_back(Vector2(1.0f, 1.0f));
+    texcoords.push_back(Vector2(0.0f, 1.0f));
+
+    for (size_t i = 0; i < positions.size(); i++) {
+        Vertex v;
+        v.pos = positions[i];
+        v.color = colors[i];
+        v.normal = normals[i];
+        v.uv = texcoords[i];
+
+        m_vertices.push_back(v);
+    }
+    m_indices = { 0, 1, 2, 0, 2, 3, };
+
+    m_indexCount = (UINT)m_indices.size();
 
     m_constBufferCPU.world = Matrix();
     m_constBufferCPU.view = Matrix();
@@ -208,16 +269,19 @@ void Cube::Init()
     m_constBufferCPU.projection = Matrix();
 }
 
-void Cube::ReverseIndices()
-{
-    std::reverse(m_indices.begin(), m_indices.end());
-}
 
-void EnvMap::Init(ComPtr<ID3D11Device>& device, const wchar_t* filePath)
+
+void EnvMap::Init(ComPtr<ID3D11Device>& device, const wstring filePath)
 {
-    m_mesh.Init();
-    m_mesh.ReverseIndices();
+    m_mesh = new Cube();
+    m_mesh->Init();
+    m_mesh->ReverseIndices();
 
     TextureLoader::CreateCubemapTexture(device, filePath, m_envSRV);
 
+}
+
+EnvMap::~EnvMap()
+{
+    delete(m_mesh);
 }
