@@ -1,17 +1,9 @@
-cbuffer WVP : register(b0)
+
+#include "Common.hlsli"
+
+cbuffer ModelConstBuffer : register(b0)
 {
 	matrix world;
-	matrix view;
-	matrix projection;
-};
-
-
-struct VSInput
-{
-	float3 pos : POSITION;
-	float3 color : COLOR;
-	float2 normal : NORMAL;
-	float2 uv : TEXCOORD;
 };
 
 struct PSInput
@@ -20,7 +12,7 @@ struct PSInput
 	float3 color : COLOR;
 };
 
-PSInput main( VSInput input )
+PSInput main( BasicVertexInput input )
 {
 	PSInput output;
 

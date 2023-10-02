@@ -25,5 +25,4 @@ float4 main(ToneMappingPSInput input) : SV_TARGET
 
     //return float4(0.0f, 1.0f, 1.0f, 1.0f);
     return float4(mapped, 1.0f);
-    // return float4(mapped, 1.0f);
 }

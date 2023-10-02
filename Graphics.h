@@ -11,6 +11,12 @@
 #include "Camera.h"
 #include "ShaderManager.h"
 
+struct GlobalBuffer
+{   // Make sure must be a column matrix
+    DirectX::SimpleMath::Matrix view;
+    DirectX::SimpleMath::Matrix projection;
+};
+
 using Microsoft::WRL::ComPtr;
 class Graphics
 {
@@ -41,11 +47,14 @@ private:
 
     D3D11_VIEWPORT m_screenViewport;
 
-    std::shared_ptr<Camera> cam;
-    std::shared_ptr<Geometry> model;
+    Camera* cam = nullptr;
+    Geometry* model = nullptr;
+    EnvMap* envMap = nullptr;
+    GlobalBuffer m_globalConstBufferCPU;
+    ComPtr<ID3D11Buffer> m_globalConstBufferGPU;
 
     // Tone Mapping
-    Geometry* m_copySquare; // square mesh for copy
+    Geometry* m_copySquare = nullptr; // square mesh for copy
     ComPtr<ID3D11SamplerState> m_samplerState;
     ComPtr<ID3D11RasterizerState> m_toneState;
 
@@ -56,6 +65,7 @@ public:
     bool Init();
     bool InitD3D(const int screenWidth, const int screenHeight);
     bool SetupGUIBackEnd();
+    void SetGlobalConstantBuffers();
 
     void Update(float dt);
     void Render();

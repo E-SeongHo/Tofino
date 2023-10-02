@@ -14,10 +14,8 @@ using DirectX::SimpleMath::Matrix;
 
 Graphics::Graphics(HWND hWnd, const int screenWidth, const int screenHeight)
     :m_window(hWnd), m_width(screenWidth), m_height(screenHeight), 
-    m_screenViewport(D3D11_VIEWPORT()), cam(make_shared<Camera>())
+    m_screenViewport(D3D11_VIEWPORT())
 {
-    cam->SetAspect(this->GetAspectRatio());
-
     // Early Initialization of Singleton
     ShaderManager::GetInstance();
 }
@@ -26,8 +24,11 @@ bool Graphics::Init()
 {
     InitD3D(m_width, m_height);
     
+    cam = new Camera();
+    cam->SetAspect(this->GetAspectRatio());
+
     //model = make_shared<Triangle>();
-    model = make_shared<Cube>();
+    model = new Cube();
     model->Init();
     model->CreateBuffers(m_device);
 
@@ -35,12 +36,15 @@ bool Graphics::Init()
     m_copySquare->Init();
     m_copySquare->CreateBuffers(m_device);
 
+    envMap = new EnvMap();
+    envMap->Init(m_device, L"./Assets/Cubemap/HDRI/SandSloot/");
+    // envMap->m_mesh->CreateBuffers(); // Init()내부에서 실행
+    
     ShaderManager::GetInstance().InitShaders(m_device);
 
-    model->UpdateViewMatrix(cam->GetViewMatrix().Transpose());
-    model->UpdateProjectionMatrix(cam->GetProjectionMatrix().Transpose());
-
-    model->UpdateBuffer(m_context); 
+    m_globalConstBufferCPU.view = cam->GetViewMatrix().Transpose();
+    m_globalConstBufferCPU.projection = cam->GetProjectionMatrix().Transpose();
+    Util::CreateConstantBuffer(m_device, m_globalConstBufferCPU, m_globalConstBufferGPU);
 
     return true;
 }
@@ -204,6 +208,14 @@ bool Graphics::SetupGUIBackEnd()
 {
     if (!ImGui_ImplDX11_Init(m_device.Get(), m_context.Get())) 
         return false;
+    return true;
+}
+
+void Graphics::SetGlobalConstantBuffers()
+{
+    // register b1 will receive it
+    m_context->VSSetConstantBuffers(1, 1, m_globalConstBufferGPU.GetAddressOf());
+    m_context->PSSetConstantBuffers(1, 1, m_globalConstBufferGPU.GetAddressOf());
 }
 
 void Graphics::Update(float dt)
@@ -224,7 +236,6 @@ void Graphics::Render()
     m_context->OMSetRenderTargets(1, m_hdrRTV.GetAddressOf(), m_depthStencilView.Get());
     m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
 
-
     m_context->VSSetShader(ShaderManager::GetInstance().basicVS.Get(), 0, 0);
 
     m_context->PSSetShader(ShaderManager::GetInstance().basicPS.Get(), 0, 0);
@@ -235,14 +246,23 @@ void Graphics::Render()
     // Set Vertex & Index Buffer
     m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
     m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    
+
+    SetGlobalConstantBuffers();
     model->Render(m_context);
+
+    // cube map
+    m_context->VSSetShader(ShaderManager::GetInstance().envMapVS.Get(), 0, 0);
+    m_context->PSSetShader(ShaderManager::GetInstance().envMapPS.Get(), 0, 0);
+    m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+    
+    SetGlobalConstantBuffers();
+    envMap->Render(m_context);
 
     // Resolve
     m_context->ResolveSubresource(m_hdrResolvedBuffer.Get(), 0, m_hdrBuffer.Get(), 
         0, DXGI_FORMAT_R16G16B16A16_FLOAT);
 
-    // Tone mapping
+    // Tone mapping ( just simply gamma correction )
     //m_context->RSSetViewports(1, &m_screenViewport);
     m_context->ClearRenderTargetView(m_backBufferRTV.Get(), clearColor);
     m_context->RSSetState(m_toneState.Get());
@@ -307,6 +327,9 @@ void Graphics::ToneMappingSetUp()
 
 Graphics::~Graphics()
 {
+    delete cam;
+    delete model;
+    delete envMap;
     delete m_copySquare;
 }
 

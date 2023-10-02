@@ -18,17 +18,17 @@ void Geometry::CreateBuffers(ComPtr<ID3D11Device>& device)
 {
     Geometry::CreateVertexBuffer(device, m_vertices, m_vertexBuffer);
     Geometry::CreateIndexBuffer(device, m_indices, m_indexBuffer);
-    Geometry::CreateConstantBuffer(device, m_constBufferCPU, m_constBufferGPU);
+    Util::CreateConstantBuffer(device, m_constBufferCPU, m_constBufferGPU);
 }
 
 void Geometry::UpdateBuffer(ComPtr<ID3D11DeviceContext>& context)
 {
-    Geometry::UpdateConstantBuffer(context, m_constBufferCPU, m_constBufferGPU);
+    Util::UpdateConstantBuffer(context, m_constBufferCPU, m_constBufferGPU);
 }
 
 void Geometry::Render(ComPtr<ID3D11DeviceContext>& context)
 {
-    context->VSSetConstantBuffers(0, 1, m_constBufferGPU.GetAddressOf()); // TODO : global const 생각
+    context->VSSetConstantBuffers(0, 1, m_constBufferGPU.GetAddressOf()); 
 
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
@@ -59,38 +59,25 @@ void Geometry::UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldColumn)
 {
     m_constBufferCPU.world = worldColumn;
 }
-void Geometry::UpdateViewMatrix(DirectX::SimpleMath::Matrix viewColumn)
-{
-    m_constBufferCPU.view = viewColumn;
-}
-void Geometry::UpdateProjectionMatrix(DirectX::SimpleMath::Matrix projColumn)
-{
-    m_constBufferCPU.projection = projColumn;
-}
 
-
-void Triangle::Init() 
+void Triangle::Init(const float scale)
 {
     m_vertices.push_back(Vertex{ Vector3{ -1.0f, -1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
     m_vertices.push_back(Vertex{ Vector3{ 0.0f, 1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
     m_vertices.push_back(Vertex{ Vector3{ 1.0f, -1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
 
     m_indices = { 0, 1, 2 };
-    m_indexCount = m_indices.size();
+    m_indexCount = (UINT)m_indices.size();
 
     m_constBufferCPU.world = Matrix();
-    m_constBufferCPU.view = Matrix();
-    m_constBufferCPU.projection = Matrix();
 }
 
-void Square::Init()
+void Square::Init(const float scale)
 {
     vector<Vector3> positions;
     vector<Vector3> colors;
     vector<Vector3> normals;
     vector<Vector2> texcoords; 
-
-    const float scale = 1.0f;
 
     positions.push_back(Vector3(-1.0f, 1.0f, 0.0f) * scale);
     positions.push_back(Vector3(1.0f, 1.0f, 0.0f) * scale);
@@ -124,17 +111,14 @@ void Square::Init()
     m_indexCount = (UINT)m_indices.size();
 
     m_constBufferCPU.world = Matrix();
-    m_constBufferCPU.view = Matrix();
-    m_constBufferCPU.projection = Matrix();
 }
 
-void Cube::Init()
+void Cube::Init(const float scale)
 {
     vector<Vector3> positions;
     vector<Vector3> colors;
     vector<Vector3> normals;
     vector<Vector2> texcoords; 
-    const float scale = 1.0f;
 
     // 윗면
     positions.push_back(Vector3(-1.0f, 1.0f, -1.0f) * scale);
@@ -262,23 +246,42 @@ void Cube::Init()
         16, 17, 18, 16, 18, 19, // 왼쪽
         20, 21, 22, 20, 22, 23  // 오른쪽
     };
-    m_indexCount = m_indices.size();
+    m_indexCount = (UINT)m_indices.size();
 
     m_constBufferCPU.world = Matrix();
-    m_constBufferCPU.view = Matrix();
-    m_constBufferCPU.projection = Matrix();
 }
 
 
 
-void EnvMap::Init(ComPtr<ID3D11Device>& device, const wstring filePath)
+void EnvMap::Init(ComPtr<ID3D11Device>& device, const wstring filepath)
 {
     m_mesh = new Cube();
-    m_mesh->Init();
+    m_mesh->Init(40.0f);
     m_mesh->ReverseIndices();
 
-    TextureLoader::CreateCubemapTexture(device, filePath, m_envSRV);
+    const wstring envFilename = filepath + L"EnvHDR.dds";
+    const wstring irradianceFilename = filepath + L"DiffuseHDR.dds";
+    const wstring specularFilename = filepath + L"SpecularHDR.dds";
+    const wstring brdfFilename = filepath + L"Brdf.dds";
 
+    TextureLoader::CreateDDSCubemapTexture(device, envFilename, m_envSRV);
+    TextureLoader::CreateDDSCubemapTexture(device, irradianceFilename, m_irradianceSRV);
+    TextureLoader::CreateDDSCubemapTexture(device, specularFilename, m_specularSRV);
+    TextureLoader::CreateDDSTexture(device, brdfFilename, m_brdfLookUpSRV);
+
+    m_mesh->CreateBuffers(device); // m_mesh가 private이므로 여기서 Buffer 생성
+}
+
+void EnvMap::Render(ComPtr<ID3D11DeviceContext>& context)
+{
+    context->PSSetShaderResources(0, 1, m_envSRV.GetAddressOf());
+
+    m_mesh->Render(context);
+}
+
+void EnvMap::func(ComPtr<ID3D11DeviceContext>& context)
+{
+    
 }
 
 EnvMap::~EnvMap()

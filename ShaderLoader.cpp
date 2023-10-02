@@ -10,7 +10,7 @@ void ShaderLoader::LoadVertexShader(ComPtr<ID3D11Device>& device, const std::wst
 {
 	ComPtr<ID3DBlob> errorBlob;
 	
-	if (FAILED(D3DCompileFromFile(filename.c_str(), 0, 0, "main", "vs_5_0", 0, 0, &vertexBlob, &errorBlob)))
+	if (FAILED(D3DCompileFromFile(filename.c_str(), 0, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "vs_5_0", 0, 0, &vertexBlob, &errorBlob)))
 	{
 		if (errorBlob) {
 			std::cout << "Vertex shader compile error\n" << (char*)errorBlob->GetBufferPointer() << std::endl;
@@ -26,7 +26,7 @@ void ShaderLoader::LoadPixelShader(ComPtr<ID3D11Device>& device, const std::wstr
 	ComPtr<ID3DBlob> pixelBlob;
 	ComPtr<ID3DBlob> errorBlob;
 
-	if (FAILED(D3DCompileFromFile(filename.c_str(), 0, 0, "main", "ps_5_0", 0, 0, &pixelBlob, &errorBlob)))
+	if (FAILED(D3DCompileFromFile(filename.c_str(), 0, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", 0, 0, &pixelBlob, &errorBlob)))
 	{
 		if (errorBlob) {
 			std::cout << "Pixel shader compile error\n" << (char*)errorBlob->GetBufferPointer() << std::endl;

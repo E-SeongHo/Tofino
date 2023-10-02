@@ -20,14 +20,12 @@ void ShaderManager::InitShaders(ComPtr<ID3D11Device>& device)
 		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 4 * 3 + 4 * 3 + 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0},
 	};
 
-	// std::cout << "Vertex blob\n" << vertexBlob->GetBufferPointer() << std::endl;
-
 	device->CreateInputLayout(inputElements.data(), UINT(inputElements.size()), vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), &basicInputLayout);
 	
 	// EnvMap uses same input layout
 	// vertexBlob.Reset();
-	/*ShaderLoader::LoadVertexShader(device, L"BasicVS.hlsl", envMapVS, vertexBlob);
-	ShaderLoader::LoadPixelShader(device, L"BasicPS.hlsl", envMapPS);*/
+	ShaderLoader::LoadVertexShader(device, L"EnvMapVS.hlsl", envMapVS, vertexBlob);
+	ShaderLoader::LoadPixelShader(device, L"EnvMapPS.hlsl", envMapPS);
 
 	// CopyVS uses same input layout
 	ShaderLoader::LoadVertexShader(device, L"CopyVS.hlsl", copyVS, vertexBlob);

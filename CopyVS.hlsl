@@ -1,11 +1,5 @@
 
-struct CopyVSInput
-{
-    float3 position : POSITION;
-    float3 color : COLOR;
-    float3 normal : NORMAL;
-    float2 uv : TEXCOORD;
-};
+#include "Common.hlsli"
 
 struct ToneMappingPSInput
 {
@@ -13,11 +7,11 @@ struct ToneMappingPSInput
     float2 uv : TEXCOORD;
 };
 
-ToneMappingPSInput main(CopyVSInput input)
+ToneMappingPSInput main(BasicVertexInput input)
 {
     ToneMappingPSInput output;
 
-    output.position = float4(input.position, 1.0);
+    output.position = float4(input.pos, 1.0);
     output.uv = input.uv;
 
     return output;
