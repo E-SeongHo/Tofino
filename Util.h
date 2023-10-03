@@ -6,6 +6,7 @@
 #include <directxtk/SimpleMath.h>
 #include <windows.h> 
 #include <exception>
+#include <iostream>
 
 inline void ThrowIfFailed(HRESULT hr) {
     if (FAILED(hr)) {

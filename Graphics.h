@@ -58,6 +58,7 @@ private:
     ComPtr<ID3D11SamplerState> m_samplerState;
     ComPtr<ID3D11RasterizerState> m_toneState;
 
+    bool m_fpvMode = false;
 public:
     Graphics(HWND hWnd, const int screenWidth, const int screenHeight);
     ~Graphics();
@@ -73,6 +74,14 @@ public:
 
     void UpdateGUI();
     float GetAspectRatio();
+    void ToggleFPVMode();
 
     void ToneMappingSetUp();
+
+    // Input Process
+    void ProcessMouseMove(const int xPos, const int yPos);
+    void UpdateCameraPosition(float dt);
+
+public:
+    bool m_keyState[256] = { false, }; // TODO: InputController class·Î ºÐ¸®
 };

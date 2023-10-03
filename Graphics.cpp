@@ -220,6 +220,13 @@ void Graphics::SetGlobalConstantBuffers()
 
 void Graphics::Update(float dt)
 {
+    // Camera
+    UpdateCameraPosition(dt);
+    m_globalConstBufferCPU.view = cam->GetViewMatrix().Transpose();
+    m_globalConstBufferCPU.projection = cam->GetProjectionMatrix().Transpose();
+    Util::UpdateConstantBuffer(m_context, m_globalConstBufferCPU, m_globalConstBufferGPU);
+
+    // Model 
     model->UpdateWorldMatrix(model->GetWorldMatrix() * Matrix::CreateRotationZ(1.0f * dt).Transpose());
     model->UpdateBuffer(m_context);
 }
@@ -293,6 +300,46 @@ void Graphics::UpdateGUI()
 float Graphics::GetAspectRatio()
 {
     return float(m_width) / m_height;
+}
+
+void Graphics::ProcessMouseMove(const int xPos, const int yPos)
+{
+    if (m_fpvMode)
+    {   // From : [0, 0] ~ [width-1, height-1]
+        // To : [-1, -1] ~ [1, 1]
+        float ndcX = (xPos * 2.0f / m_width) - 1.0f;
+        float ndcY = -((yPos * 2.0f / m_height) - 1.0f);
+
+        cam->RotateFromMouse(ndcX, ndcY);
+    }
+}
+void Graphics::UpdateCameraPosition(float dt)
+{
+    if (!m_fpvMode) return;
+
+    cam->SetRunVars(m_keyState[VK_SHIFT]);
+    if (m_keyState[0x57]) // W
+    {
+        cam->MoveForward(dt);
+    }
+    if (m_keyState[0x41]) // A
+    {
+        cam->MoveRight(-dt);
+    }
+    if (m_keyState[0x53]) // S
+    {
+        cam->MoveForward(-dt);
+    }
+    if (m_keyState[0x44]) // D
+    {
+        cam->MoveRight(dt);
+    }
+}
+
+void Graphics::ToggleFPVMode()
+{
+    if (!m_fpvMode) m_fpvMode = true;
+    else m_fpvMode = false;
 }
 
 void Graphics::ToneMappingSetUp()

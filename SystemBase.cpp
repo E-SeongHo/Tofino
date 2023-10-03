@@ -6,12 +6,31 @@
 
 #include "SystemBase.h"
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 using namespace std;
 
+SystemBase* pInstance = nullptr;
+//https://stackoverflow.com/questions/17221815/why-cant-my-wndproc-be-in-a-class
+
+SystemBase::~SystemBase()
+{
+	pInstance = nullptr;
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+
+	DestroyWindow(m_window);
+}
+
+LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	return pInstance->ProcessMessage(hWnd, msg, wParam, lParam);
+}
+
 bool SystemBase::Init()
 {
+	pInstance = this;
+
 	if (!InitWindow())	
 		return false;
 
@@ -97,6 +116,7 @@ bool SystemBase::InitGUI()
 
 	return true;
 }
+
 void SystemBase::Run()
 {
 	MSG msg = {};
@@ -134,19 +154,22 @@ void SystemBase::Run()
 }
 
 
-void ProcessInput(HWND hWnd, WPARAM keyPress)
+void SystemBase::ProcessKeyboardInput(HWND hWnd, WPARAM keyPress)
 {
 	switch (keyPress)
 	{
 	case VK_ESCAPE:
 		PostMessage(hWnd, WM_DESTROY, 0, 0);
 		break;
+	case 0x46: // 'F' key
+		m_renderer->ToggleFPVMode();
+		break;
 	}
 }
 
-
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+
+LRESULT SystemBase::ProcessMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
 		return true;
@@ -162,6 +185,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_MOUSEMOVE:
 		//std::cout << "Mouse " << LOWORD(lParam) << " " << HIWORD(lParam) << std::endl;
+		m_renderer->ProcessMouseMove(LOWORD(lParam), HIWORD(lParam));
 		break;
 	case WM_LBUTTONUP:
 		//std::cout << "WM_LBUTTONUP Left mouse button" << std::endl;
@@ -171,7 +195,11 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_KEYDOWN:
 		// std::cout << "WM_KEYDOWN " << (int)wParam << std::endl;
-		ProcessInput(hWnd, wParam);
+		m_renderer->m_keyState[wParam] = true;
+		ProcessKeyboardInput(hWnd, wParam);
+		break;
+	case WM_KEYUP:
+		m_renderer->m_keyState[wParam] = false;
 		break;
 	case WM_DESTROY:
 		::PostQuitMessage(0);

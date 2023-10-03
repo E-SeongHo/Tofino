@@ -256,7 +256,7 @@ void Cube::Init(const float scale)
 void EnvMap::Init(ComPtr<ID3D11Device>& device, const wstring filepath)
 {
     m_mesh = new Cube();
-    m_mesh->Init(40.0f);
+    m_mesh->Init(100.0f);
     m_mesh->ReverseIndices();
 
     const wstring envFilename = filepath + L"EnvHDR.dds";
