@@ -13,10 +13,11 @@ struct NormalPSInput
     float3 color : COLOR;
 };
 
-static const float lineScale = 0.02;
+static const float lineScale = 0.2;
 
 [maxvertexcount(2)]
-void main(point NormalGSInput input[1], inout LineStream<NormalPSInput> outputStream)
+void main(point NormalGSInput input[1], uint primID: SV_PrimitiveID, 
+    inout LineStream<NormalPSInput> outputStream)
 {
     NormalPSInput output;
 

@@ -250,7 +250,7 @@ void Graphics::Render()
     m_context->PSSetShader(ShaderManager::GetInstance().basicPS.Get(), 0, 0);
 
     m_context->RSSetState(m_solidState.Get());
-    // m_context->RSSetState(m_wireState.Get());
+    //m_context->RSSetState(m_wireState.Get());
 
     // Set Vertex & Index Buffer
     m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
@@ -259,11 +259,20 @@ void Graphics::Render()
     SetGlobalConstantBuffers();
     model->Render(m_context);
 
-    //m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
-    //m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-    //model->RenderNormal(m_context);
+    m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+    m_context->VSSetShader(ShaderManager::GetInstance().normalVS.Get(), 0, 0);
+    m_context->GSSetShader(ShaderManager::GetInstance().normalGS.Get(), 0, 0);
+    m_context->PSSetShader(ShaderManager::GetInstance().normalPS.Get(), 0, 0);
+
+    model->RenderNormal(m_context);
+    m_context->GSSetShader(nullptr, 0, 0);
 
     // cube map
+    m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
     m_context->VSSetShader(ShaderManager::GetInstance().envMapVS.Get(), 0, 0);
     m_context->PSSetShader(ShaderManager::GetInstance().envMapPS.Get(), 0, 0);
     m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
