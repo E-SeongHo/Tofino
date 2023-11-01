@@ -36,4 +36,16 @@ void ShaderLoader::LoadPixelShader(ComPtr<ID3D11Device>& device, const std::wstr
 }
 
 
-   
+void ShaderLoader::LoadGeometryShader(ComPtr<ID3D11Device>& device, const std::wstring& filename, ComPtr<ID3D11GeometryShader>& geometryShader)
+{
+	ComPtr<ID3DBlob> geometryBlob;
+	ComPtr<ID3DBlob> errorBlob;
+
+	if (FAILED(D3DCompileFromFile(filename.c_str(), 0, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "gs_5_0", 0, 0, &geometryBlob, &errorBlob)))
+	{
+		if (errorBlob) {
+			std::cout << "Pixel shader compile error\n" << (char*)errorBlob->GetBufferPointer() << std::endl;
+		}
+	}
+	ThrowIfFailed(device->CreateGeometryShader(geometryBlob->GetBufferPointer(), geometryBlob->GetBufferSize(), NULL, &geometryShader));
+}

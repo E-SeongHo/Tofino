@@ -26,6 +26,10 @@ public:
 	ComPtr<ID3D11PixelShader> basicPS;
 	ComPtr<ID3D11InputLayout> basicInputLayout;
 
+	ComPtr<ID3D11VertexShader> normalVS;
+	ComPtr<ID3D11GeometryShader> normalGS;
+	ComPtr<ID3D11PixelShader> normalPS;
+
 	ComPtr<ID3D11VertexShader> envMapVS;
 	ComPtr<ID3D11PixelShader> envMapPS;
 

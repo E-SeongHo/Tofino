@@ -19,9 +19,11 @@ private:
 	float m_speed;
 
 	// For Rotation
-	float m_prevX, m_prevY; // NDC Coords
+	float m_yaw;
+	float m_pitch;
 
 	// Run variables
+	bool m_isRun = false;
 	const float walkSpeed = 5.0f;
 	const float walkFovY = 70.0f;
 	

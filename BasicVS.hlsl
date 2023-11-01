@@ -4,6 +4,7 @@
 cbuffer ModelConstBuffer : register(b0)
 {
 	matrix world;
+	matrix worldIT;
 };
 
 struct PSInput

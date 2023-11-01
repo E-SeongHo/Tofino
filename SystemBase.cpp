@@ -63,8 +63,6 @@ bool SystemBase::InitWindow()
 	};
 	RegisterClassEx(&wc);
 
-	int posX = 100, posY = 100;
-
 	RECT wr = { 0, 0, m_width, m_height };    // set the size, but not the position
 	AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);    // adjust the size
 
@@ -73,8 +71,8 @@ bool SystemBase::InitWindow()
 		wc.lpszClassName,
 		L"Hoy-Engine : MY CUSTOM ENGINE",
 		WS_OVERLAPPEDWINDOW,
-		posX,
-		posY,
+		m_startX,
+		m_startY,
 		wr.right - wr.left, // 윈도우 가로 방향 해상도
 		wr.bottom - wr.top, // 윈도우 세로 방향 해상도    
 		NULL,

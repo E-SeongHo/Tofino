@@ -16,5 +16,7 @@ public:
 		ComPtr<ID3D11VertexShader>& vertexShader, ComPtr<ID3DBlob>& vertexBlob);
 	static void LoadPixelShader(ComPtr<ID3D11Device>& device, const std::wstring& filename,
 		ComPtr<ID3D11PixelShader>& pixelShader);
+	static void LoadGeometryShader(ComPtr<ID3D11Device>& device, const std::wstring& filename,
+		ComPtr<ID3D11GeometryShader>& geometryShader);
 
 };

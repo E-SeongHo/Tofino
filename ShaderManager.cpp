@@ -22,6 +22,11 @@ void ShaderManager::InitShaders(ComPtr<ID3D11Device>& device)
 
 	device->CreateInputLayout(inputElements.data(), UINT(inputElements.size()), vertexBlob->GetBufferPointer(), vertexBlob->GetBufferSize(), &basicInputLayout);
 	
+	// NormalVS uses same input layout
+	ShaderLoader::LoadVertexShader(device, L"NormalVS.hlsl", normalVS, vertexBlob);
+	ShaderLoader::LoadGeometryShader(device, L"NormalGS.hlsl", normalGS);
+	ShaderLoader::LoadPixelShader(device, L"NormalPS.hlsl", normalPS);
+
 	// EnvMap uses same input layout
 	// vertexBlob.Reset();
 	ShaderLoader::LoadVertexShader(device, L"EnvMapVS.hlsl", envMapVS, vertexBlob);

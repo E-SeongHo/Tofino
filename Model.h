@@ -22,8 +22,7 @@ struct Vertex
 struct ModelBuffer // Must Store as a Column Matrix 
 {
     DirectX::SimpleMath::Matrix world; // equal model matrix 
-    /*DirectX::SimpleMath::Matrix view;
-    DirectX::SimpleMath::Matrix projection; */
+    DirectX::SimpleMath::Matrix worldIT; 
 };
 
 using Microsoft::WRL::ComPtr;
@@ -47,6 +46,7 @@ public:
     void CreateBuffers(ComPtr<ID3D11Device>& device);
     void UpdateBuffer(ComPtr<ID3D11DeviceContext>& context);
     void Render(ComPtr<ID3D11DeviceContext>& context);
+    void RenderNormal(ComPtr<ID3D11DeviceContext>& context);
     void CopySquareRenderSetup(ComPtr<ID3D11DeviceContext>& context);
     DirectX::SimpleMath::Matrix GetWorldMatrix();
 

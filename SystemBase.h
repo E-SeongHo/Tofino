@@ -10,6 +10,7 @@ class SystemBase
 {
 public:
 	int m_width = 1600, m_height = 900;
+	int m_startX = 100, m_startY = 100;
 	HWND m_window;
 	std::unique_ptr<Graphics> m_renderer;
 

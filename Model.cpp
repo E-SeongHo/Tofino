@@ -37,6 +37,14 @@ void Geometry::Render(ComPtr<ID3D11DeviceContext>& context)
     context->DrawIndexed(m_indexCount, 0, 0);
 }
 
+void Geometry::RenderNormal(ComPtr<ID3D11DeviceContext>& context)
+{
+    UINT stride = sizeof(Vertex);
+    UINT offset = 0;
+    context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+    context->Draw(UINT(m_vertices.size()), 0);
+}
+
 void Geometry::CopySquareRenderSetup(ComPtr<ID3D11DeviceContext>& context)
 {
     // PS SET CONSTANT ( ex) gamma )
@@ -58,6 +66,10 @@ DirectX::SimpleMath::Matrix Geometry::GetWorldMatrix()
 void Geometry::UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldColumn)
 {
     m_constBufferCPU.world = worldColumn;
+    
+    m_constBufferCPU.worldIT = worldColumn;
+    m_constBufferCPU.worldIT.Translation(Vector3(0.0f));
+    m_constBufferCPU.worldIT.Invert().Transpose();
 }
 
 void Triangle::Init(const float scale)
@@ -250,7 +262,6 @@ void Cube::Init(const float scale)
 
     m_constBufferCPU.world = Matrix();
 }
-
 
 
 void EnvMap::Init(ComPtr<ID3D11Device>& device, const wstring filepath)

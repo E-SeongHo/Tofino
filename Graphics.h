@@ -3,6 +3,7 @@
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <wrl.h> 
+#include <windows.h>
 #include <exception>
 #include <vector>
 #include <directxtk/SimpleMath.h>
@@ -23,6 +24,7 @@ class Graphics
 private:
     HWND m_window;
     int m_width, m_height;
+    POINT m_aimPoint;
 
     ComPtr<ID3D11Device> m_device;
     ComPtr<ID3D11DeviceContext> m_context;

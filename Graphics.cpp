@@ -14,7 +14,7 @@ using DirectX::SimpleMath::Matrix;
 
 Graphics::Graphics(HWND hWnd, const int screenWidth, const int screenHeight)
     :m_window(hWnd), m_width(screenWidth), m_height(screenHeight), 
-    m_screenViewport(D3D11_VIEWPORT())
+    m_aimPoint({m_width/2, m_height/2}), m_screenViewport(D3D11_VIEWPORT())
 {
     // Early Initialization of Singleton
     ShaderManager::GetInstance();
@@ -23,6 +23,7 @@ Graphics::Graphics(HWND hWnd, const int screenWidth, const int screenHeight)
 bool Graphics::Init()
 {
     InitD3D(m_width, m_height);
+    ClientToScreen(m_window, &m_aimPoint);
     
     cam = new Camera();
     cam->SetAspect(this->GetAspectRatio());
@@ -215,6 +216,7 @@ void Graphics::SetGlobalConstantBuffers()
 {
     // register b1 will receive it
     m_context->VSSetConstantBuffers(1, 1, m_globalConstBufferGPU.GetAddressOf());
+    m_context->GSSetConstantBuffers(1, 1, m_globalConstBufferGPU.GetAddressOf());
     m_context->PSSetConstantBuffers(1, 1, m_globalConstBufferGPU.GetAddressOf());
 }
 
@@ -257,6 +259,10 @@ void Graphics::Render()
     SetGlobalConstantBuffers();
     model->Render(m_context);
 
+    //m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
+    //m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+    //model->RenderNormal(m_context);
+
     // cube map
     m_context->VSSetShader(ShaderManager::GetInstance().envMapVS.Get(), 0, 0);
     m_context->PSSetShader(ShaderManager::GetInstance().envMapPS.Get(), 0, 0);
@@ -274,8 +280,8 @@ void Graphics::Render()
     m_context->ClearRenderTargetView(m_backBufferRTV.Get(), clearColor);
     m_context->RSSetState(m_toneState.Get());
 
-    //m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get()); // use same as basic
-    //m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // use same as basic
+    m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get()); // use same as basic
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // use same as basic
     m_context->OMSetRenderTargets(1, m_backBufferRTV.GetAddressOf(), NULL);
     
     m_context->VSSetShader(ShaderManager::GetInstance().copyVS.Get(), 0, 0);
@@ -309,8 +315,10 @@ void Graphics::ProcessMouseMove(const int xPos, const int yPos)
         // To : [-1, -1] ~ [1, 1]
         float ndcX = (xPos * 2.0f / m_width) - 1.0f;
         float ndcY = -((yPos * 2.0f / m_height) - 1.0f);
-
+        
         cam->RotateFromMouse(ndcX, ndcY);
+
+        SetCursorPos(m_aimPoint.x, m_aimPoint.y);
     }
 }
 void Graphics::UpdateCameraPosition(float dt)
@@ -338,8 +346,17 @@ void Graphics::UpdateCameraPosition(float dt)
 
 void Graphics::ToggleFPVMode()
 {
-    if (!m_fpvMode) m_fpvMode = true;
-    else m_fpvMode = false;
+    if (!m_fpvMode)
+    {
+        m_fpvMode = true;
+        SetCursorPos(m_aimPoint.x, m_aimPoint.y);
+        ShowCursor(false);
+    }
+    else
+    {
+        m_fpvMode = false;
+        ShowCursor(true);
+    }
 }
 
 void Graphics::ToneMappingSetUp()
