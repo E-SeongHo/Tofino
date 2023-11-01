@@ -5,17 +5,19 @@
 #include <wrl.h> 
 #include <directxtk/SimpleMath.h>
 #include <directxtk/DDSTextureLoader.h>
+#include <directxtk/WICTextureLoader.h>
 #include <string>
+#include <vector>
 
 #include "Util.h"
 
-using Microsoft::WRL::ComPtr;
 
-class TextureLoader
+namespace TextureLoader
 {
-public:
-    static void CreateDDSCubemapTexture(ComPtr<ID3D11Device>& device, const std::wstring filename, 
+    using Microsoft::WRL::ComPtr;
+
+    void CreateDDSCubemapTexture(ComPtr<ID3D11Device>& device, const std::wstring filename, 
         ComPtr<ID3D11ShaderResourceView>& shaderResourceView);
-    static void CreateDDSTexture(ComPtr<ID3D11Device>& device, const std::wstring filename,
+    void CreateDDSTexture(ComPtr<ID3D11Device>& device, const std::wstring filename,
         ComPtr<ID3D11ShaderResourceView>& shaderResourceView);
 };

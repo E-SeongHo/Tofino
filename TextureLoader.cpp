@@ -1,6 +1,8 @@
 #include "TextureLoader.h"
 
 using namespace DirectX;
+using namespace std;
+
 void TextureLoader::CreateDDSCubemapTexture(ComPtr<ID3D11Device>& device, const std::wstring filename, ComPtr<ID3D11ShaderResourceView>& shaderResourceView)
 {
     ComPtr<ID3D11Texture2D> texture;
@@ -27,3 +29,4 @@ void TextureLoader::CreateDDSTexture(ComPtr<ID3D11Device>& device, const std::ws
         DDS_LOADER_FLAGS(false), (ID3D11Resource**)texture.GetAddressOf(),
         shaderResourceView.GetAddressOf(), nullptr));
 }
+

@@ -29,8 +29,10 @@ bool Graphics::Init()
     cam->SetAspect(this->GetAspectRatio());
 
     //model = make_shared<Triangle>();
-    model = new Cube();
+    //model = new Cube();
+    model = new Sphere();
     model->Init();
+    model->LoadTexture(m_device, L"./Assets/Texture/Test/");
     model->CreateBuffers(m_device);
 
     m_copySquare = new Square();
@@ -229,7 +231,7 @@ void Graphics::Update(float dt)
     Util::UpdateConstantBuffer(m_context, m_globalConstBufferCPU, m_globalConstBufferGPU);
 
     // Model 
-    model->UpdateWorldMatrix(model->GetWorldMatrix() * Matrix::CreateRotationZ(1.0f * dt).Transpose());
+    model->UpdateWorldMatrix(model->GetWorldMatrix() * Matrix::CreateRotationY(1.0f * dt) * Matrix::CreateRotationX(1.0f * dt).Transpose());
     model->UpdateBuffer(m_context);
 }
 
@@ -246,9 +248,9 @@ void Graphics::Render()
     m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
 
     m_context->VSSetShader(ShaderManager::GetInstance().basicVS.Get(), 0, 0);
-
     m_context->PSSetShader(ShaderManager::GetInstance().basicPS.Get(), 0, 0);
-
+    m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+    model->SetSRVs(m_context);
     m_context->RSSetState(m_solidState.Get());
     //m_context->RSSetState(m_wireState.Get());
 

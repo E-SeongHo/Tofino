@@ -72,6 +72,18 @@ void Geometry::UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldColumn)
     m_constBufferCPU.worldIT.Invert().Transpose();
 }
 
+void Geometry::LoadTexture(ComPtr<ID3D11Device>& device, const wstring filepath)
+{
+    const wstring diffuseFilename = filepath + L"worn-painted-metal_albedo.dds";
+
+    TextureLoader::CreateDDSTexture(device, diffuseFilename, m_diffuseSRV);
+}
+
+void Geometry::SetSRVs(ComPtr<ID3D11DeviceContext>& context)
+{
+    context->PSSetShaderResources(0, 1, m_diffuseSRV.GetAddressOf());
+}
+
 void Triangle::Init(const float scale)
 {
     m_vertices.push_back(Vertex{ Vector3{ -1.0f, -1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
@@ -263,6 +275,75 @@ void Cube::Init(const float scale)
     m_constBufferCPU.world = Matrix();
 }
 
+void Sphere::Init(const float scale)
+{
+    // https://www.songho.ca/opengl/gl_sphere.html
+    using namespace DirectX;
+
+    vector<Vector3> positions;
+    vector<Vector3> colors;
+    vector<Vector3> normals;
+    vector<Vector2> texcoords;
+
+    const float radius = 1.0f * scale;
+    const int sectorCount = 20;
+    const int stackCount = 20;
+
+    float sectorStep = XM_2PI / (float)sectorCount;
+    float stackStep = XM_PI / (float)stackCount;
+
+    for (int i = 0; i <= stackCount; ++i)
+    {
+        float stackAngle = (float)i * stackStep;
+        Vector3 stackStart = Vector3::Transform(Vector3(0.0f, -radius, 0.0f), Matrix::CreateRotationZ(stackAngle));
+        
+        // add (sectorCount+1) vertices per stack
+        // first and last vertices have same position and normal, but different tex coords
+        for (int j = 0; j <= sectorCount; ++j)
+        {
+            float sectorAngle = (float)j * sectorStep;
+            Vector3 currentPoint = Vector3::Transform(stackStart, Matrix::CreateRotationY(sectorAngle));
+            positions.push_back(currentPoint);
+            
+            currentPoint.Normalize();
+            normals.push_back(currentPoint);
+
+            float u = (float)j / sectorCount;
+            float v = 1.0f - ((float)i / stackCount);
+            texcoords.push_back(Vector2(u, v));
+        }
+    }
+
+    for (size_t i = 0; i < positions.size(); i++) 
+    {
+        Vertex v;
+        v.pos = positions[i];
+        v.color = Vector3(0.5f, 0.5f, 0.5f);
+        v.normal = normals[i];
+        v.uv = texcoords[i];
+
+        m_vertices.push_back(v);
+    }
+
+    for (int i = 0; i < stackCount; ++i)
+    {
+        const int offset = (sectorCount + 1) * i;
+        
+        for (int j = 0; j < sectorCount; ++j)
+        {
+            m_indices.push_back(offset + j);
+            m_indices.push_back(offset + j + 1);
+            m_indices.push_back(offset + j + sectorCount + 1);
+            
+            m_indices.push_back(offset + j + 1);
+            m_indices.push_back(offset + j + 1 + sectorCount + 1);
+            m_indices.push_back(offset + j + sectorCount + 1);
+        }
+    }
+
+    m_indexCount = (UINT)m_indices.size();
+    m_constBufferCPU.world = Matrix();
+}
 
 void EnvMap::Init(ComPtr<ID3D11Device>& device, const wstring filepath)
 {

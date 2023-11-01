@@ -11,6 +11,7 @@ struct PSInput
 {
 	float4 pos : SV_POSITION;
 	float3 color : COLOR;
+	float2 uv   : TEXCOORD;
 };
 
 PSInput main( BasicVertexInput input )
@@ -24,6 +25,7 @@ PSInput main( BasicVertexInput input )
 
 	output.pos = pos;
 	output.color = input.color;
+	output.uv = input.uv;
 
 	return output;
 }

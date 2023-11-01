@@ -39,6 +39,8 @@ protected:
     std::vector<Vertex> m_vertices;
     std::vector<uint32_t> m_indices;
 
+    ComPtr<ID3D11ShaderResourceView> m_diffuseSRV;
+
 public:
     virtual void Init(const float scale = 1.0f) = 0;
     void ReverseIndices();
@@ -51,6 +53,9 @@ public:
     DirectX::SimpleMath::Matrix GetWorldMatrix();
 
     void UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldColumn);
+
+    void LoadTexture(ComPtr<ID3D11Device>& device, const std::wstring filepath);
+    void SetSRVs(ComPtr<ID3D11DeviceContext>& context);
 
 protected:
     static void CreateVertexBuffer(ComPtr<ID3D11Device>& device, const std::vector<Vertex>& vertices, ComPtr<ID3D11Buffer>& vertexBuffer)
@@ -109,6 +114,11 @@ public:
     void Init(const float scale = 1.0f) override;
 };
 
+class Sphere : public Geometry
+{
+public:
+    void Init(const float scale = 1.0f) override;
+};
 
 class EnvMap 
 {
