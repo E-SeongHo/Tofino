@@ -9,6 +9,7 @@ using namespace std;
 using DirectX::SimpleMath::Vector3;
 using DirectX::SimpleMath::Vector2;
 using DirectX::SimpleMath::Matrix;
+using DirectX::BoundingSphere;
 
 void Geometry::ReverseIndices()
 {
@@ -39,9 +40,12 @@ void Geometry::Render(ComPtr<ID3D11DeviceContext>& context)
 
 void Geometry::RenderNormal(ComPtr<ID3D11DeviceContext>& context)
 {
+    context->VSSetConstantBuffers(0, 1, m_constBufferGPU.GetAddressOf());
+
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
     context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+    //context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
     context->Draw(UINT(m_vertices.size()), 0);
 }
 
@@ -59,12 +63,13 @@ void Geometry::CopySquareRenderSetup(ComPtr<ID3D11DeviceContext>& context)
 
 DirectX::SimpleMath::Matrix Geometry::GetWorldMatrix()
 {
-    return m_constBufferCPU.world;
+    return m_constBufferCPU.world.Transpose();
 }
 
 
-void Geometry::UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldColumn)
+void Geometry::UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow)
 {
+    Matrix worldColumn = worldRow.Transpose();
     m_constBufferCPU.world = worldColumn;
     
     m_constBufferCPU.worldIT = worldColumn;
@@ -84,7 +89,7 @@ void Geometry::SetSRVs(ComPtr<ID3D11DeviceContext>& context)
     context->PSSetShaderResources(0, 1, m_diffuseSRV.GetAddressOf());
 }
 
-void Triangle::Init(const float scale)
+void Triangle::Init(const float scale, bool isHittable)
 {
     m_vertices.push_back(Vertex{ Vector3{ -1.0f, -1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
     m_vertices.push_back(Vertex{ Vector3{ 0.0f, 1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
@@ -96,7 +101,7 @@ void Triangle::Init(const float scale)
     m_constBufferCPU.world = Matrix();
 }
 
-void Square::Init(const float scale)
+void Square::Init(const float scale, bool isHittable)
 {
     vector<Vector3> positions;
     vector<Vector3> colors;
@@ -137,7 +142,7 @@ void Square::Init(const float scale)
     m_constBufferCPU.world = Matrix();
 }
 
-void Cube::Init(const float scale)
+void Cube::Init(const float scale, bool isHittable)
 {
     vector<Vector3> positions;
     vector<Vector3> colors;
@@ -275,7 +280,7 @@ void Cube::Init(const float scale)
     m_constBufferCPU.world = Matrix();
 }
 
-void Sphere::Init(const float scale)
+void Sphere::Init(const float scale, bool isHittable)
 {
     // https://www.songho.ca/opengl/gl_sphere.html
     using namespace DirectX;
@@ -343,6 +348,12 @@ void Sphere::Init(const float scale)
 
     m_indexCount = (UINT)m_indices.size();
     m_constBufferCPU.world = Matrix();
+
+    if (isHittable)
+    {
+        onActive = isHittable;
+        m_boundingSphere = BoundingSphere(Vector3(0.0f, 0.0f, 0.0f), radius);
+    }
 }
 
 void EnvMap::Init(ComPtr<ID3D11Device>& device, const wstring filepath)

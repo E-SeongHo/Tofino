@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
+#include <tuple>
 
 #include "SystemBase.h"
 
@@ -185,8 +186,17 @@ LRESULT SystemBase::ProcessMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 		//std::cout << "Mouse " << LOWORD(lParam) << " " << HIWORD(lParam) << std::endl;
 		m_renderer->ProcessMouseMove(LOWORD(lParam), HIWORD(lParam));
 		break;
+	case WM_LBUTTONDOWN:
+		//cout << wParam << endl;
+		m_renderer->m_leftClick = true;
+		m_renderer->ProcessMouseMove(LOWORD(lParam), HIWORD(lParam));
+		break;
 	case WM_LBUTTONUP:
-		//std::cout << "WM_LBUTTONUP Left mouse button" << std::endl;
+		m_renderer->m_leftClick = false;
+		break;
+	case WM_MOUSEWHEEL:
+		//cout << GET_WHEEL_DELTA_WPARAM(wParam) << endl;
+		m_renderer->ProcessMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam));
 		break;
 	case WM_RBUTTONUP:
 		//std::cout << "WM_RBUTTONUP Right mouse button" << std::endl;

@@ -6,6 +6,7 @@
 #include <directxtk/SimpleMath.h>
 #include <vector>
 #include <string>
+#include <DirectXCollision.h>
 
 #include "Util.h"
 
@@ -23,10 +24,18 @@ struct ModelBuffer // Must Store as a Column Matrix
 {
     DirectX::SimpleMath::Matrix world; // equal model matrix 
     DirectX::SimpleMath::Matrix worldIT; 
+    DirectX::SimpleMath::Matrix transInView; // transform in view space (For mouse picking)
+};
+
+class Hittable
+{
+public:
+    bool onActive = false;
+    DirectX::BoundingSphere m_boundingSphere;
 };
 
 using Microsoft::WRL::ComPtr;
-class Geometry
+class Geometry : public Hittable
 {
 protected: 
     ComPtr<ID3D11Buffer> m_vertexBuffer;
@@ -36,13 +45,15 @@ protected:
 
     ModelBuffer m_constBufferCPU;
 
+    // Meshes
     std::vector<Vertex> m_vertices;
     std::vector<uint32_t> m_indices;
 
+    // Textures
     ComPtr<ID3D11ShaderResourceView> m_diffuseSRV;
 
 public:
-    virtual void Init(const float scale = 1.0f) = 0;
+    virtual void Init(const float scale = 1.0f, bool isHittable = false) = 0;
     void ReverseIndices();
     
     void CreateBuffers(ComPtr<ID3D11Device>& device);
@@ -52,7 +63,8 @@ public:
     void CopySquareRenderSetup(ComPtr<ID3D11DeviceContext>& context);
     DirectX::SimpleMath::Matrix GetWorldMatrix();
 
-    void UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldColumn);
+    void UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow);
+    void UpdateTransInViewMatrix();
 
     void LoadTexture(ComPtr<ID3D11Device>& device, const std::wstring filepath);
     void SetSRVs(ComPtr<ID3D11DeviceContext>& context);
@@ -99,25 +111,25 @@ protected:
 class Triangle : public Geometry
 {
 public:
-    void Init(const float scale = 1.0f) override;
+    void Init(const float scale = 1.0f, bool isHittable = false) override;
 };
 
 class Square : public Geometry
 {
 public:
-    void Init(const float scale = 1.0f) override;
+    void Init(const float scale = 1.0f, bool isHittable = false) override;
 };
 
 class Cube : public Geometry
 {
 public:
-    void Init(const float scale = 1.0f) override;
+    void Init(const float scale = 1.0f, bool isHittable = false) override;
 };
 
 class Sphere : public Geometry
 {
 public:
-    void Init(const float scale = 1.0f) override;
+    void Init(const float scale = 1.0f, bool isHittable = false) override;
 };
 
 class EnvMap 

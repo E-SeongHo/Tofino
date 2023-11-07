@@ -29,6 +29,21 @@ Vector3 Camera::GetOrigin()
 	return m_origin;
 }
 
+Vector3 Camera::GetDirection()
+{
+	return m_direction;
+}
+
+Vector3 Camera::GetRight()
+{
+	return m_right;
+}
+
+Vector3 Camera::GetUp()
+{
+	return m_up;
+}
+
 Matrix Camera::GetViewMatrix()
 {
 	return XMMatrixLookToLH(m_origin, m_direction, m_up);

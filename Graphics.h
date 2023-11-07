@@ -52,6 +52,8 @@ private:
     Camera* cam = nullptr;
     Geometry* model = nullptr;
     EnvMap* envMap = nullptr;
+    Geometry* pickingEffect = nullptr;
+
     GlobalBuffer m_globalConstBufferCPU;
     ComPtr<ID3D11Buffer> m_globalConstBufferGPU;
 
@@ -82,8 +84,12 @@ public:
 
     // Input Process
     void ProcessMouseMove(const int xPos, const int yPos);
+    void ProcessMouseWheel(const int wheel);
     void UpdateCameraPosition(float dt);
 
 public:
     bool m_keyState[256] = { false, }; // TODO: InputController class·Î ºÐ¸®
+    bool m_leftClick = false;
+    bool m_rightClick = false;
+    bool m_picking = false;
 };

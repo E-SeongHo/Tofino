@@ -31,6 +31,10 @@ private:
 public:
 	Camera();
 	DirectX::SimpleMath::Vector3 GetOrigin();
+	DirectX::SimpleMath::Vector3 GetDirection();
+	DirectX::SimpleMath::Vector3 GetRight();
+	DirectX::SimpleMath::Vector3 GetUp();
+
 	DirectX::SimpleMath::Matrix GetViewMatrix();
 	DirectX::SimpleMath::Matrix GetProjectionMatrix();
 

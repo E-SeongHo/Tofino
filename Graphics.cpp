@@ -3,14 +3,17 @@
 #include <memory>
 #include <directxtk/SimpleMath.h>
 #include <imgui_impl_dx11.h>
+#include <DirectXCollision.h>
 
 #include "Graphics.h"
 #include "Model.h"
 
 // using Microsoft::WRL::ComPtr;
 using namespace std;
+using DirectX::BoundingSphere;
 using DirectX::SimpleMath::Vector3;
 using DirectX::SimpleMath::Matrix;
+using DirectX::SimpleMath::Ray;
 
 Graphics::Graphics(HWND hWnd, const int screenWidth, const int screenHeight)
     :m_window(hWnd), m_width(screenWidth), m_height(screenHeight), 
@@ -31,9 +34,14 @@ bool Graphics::Init()
     //model = make_shared<Triangle>();
     //model = new Cube();
     model = new Sphere();
-    model->Init();
+    model->Init(1.0f, true);
     model->LoadTexture(m_device, L"./Assets/Texture/Test/");
     model->CreateBuffers(m_device);
+
+    pickingEffect = new Sphere();
+    pickingEffect->Init(0.3f, false);
+    pickingEffect->LoadTexture(m_device, L"./Assets/Texture/Test/");
+    pickingEffect->CreateBuffers(m_device);
 
     m_copySquare = new Square();
     m_copySquare->Init();
@@ -231,7 +239,8 @@ void Graphics::Update(float dt)
     Util::UpdateConstantBuffer(m_context, m_globalConstBufferCPU, m_globalConstBufferGPU);
 
     // Model 
-    model->UpdateWorldMatrix(model->GetWorldMatrix() * Matrix::CreateRotationY(1.0f * dt) * Matrix::CreateRotationX(1.0f * dt).Transpose());
+    //cout << model->m_boundingSphere.Center.z << endl;
+    model->UpdateWorldMatrix(Matrix::CreateRotationY(1.0f * dt) * Matrix::CreateRotationX(1.0f * dt) * model->GetWorldMatrix());
     model->UpdateBuffer(m_context);
 }
 
@@ -260,6 +269,12 @@ void Graphics::Render()
 
     SetGlobalConstantBuffers();
     model->Render(m_context);
+    
+    if (m_picking && m_leftClick)
+    {
+        pickingEffect->SetSRVs(m_context);
+        pickingEffect->Render(m_context);
+    }
 
     m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
     m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
@@ -320,16 +335,80 @@ float Graphics::GetAspectRatio()
 }
 
 void Graphics::ProcessMouseMove(const int xPos, const int yPos)
-{
+{   // From : [0, 0] ~ [width-1, height-1]
+    // To : [-1, -1] ~ [1, 1]
+    const float ndcX = (xPos * 2.0f / m_width) - 1.0f;
+    const float ndcY = -((yPos * 2.0f / m_height) - 1.0f);
+
+    static Vector3 prevPos = Vector3(0.0f);
+    // traversal mode
     if (m_fpvMode)
-    {   // From : [0, 0] ~ [width-1, height-1]
-        // To : [-1, -1] ~ [1, 1]
-        float ndcX = (xPos * 2.0f / m_width) - 1.0f;
-        float ndcY = -((yPos * 2.0f / m_height) - 1.0f);
-        
+    {    
         cam->RotateFromMouse(ndcX, ndcY);
 
         SetCursorPos(m_aimPoint.x, m_aimPoint.y);
+    }
+    // edit mode
+    else if(m_leftClick)
+    {
+        Vector3 p0 = Vector3(ndcX, ndcY, 0.0f);
+        Vector3 p1 = Vector3(ndcX, ndcY, 1.0f);
+        // NDC -> View -> World
+        Matrix unprojection = cam->GetProjectionMatrix().Invert() * cam->GetViewMatrix().Invert();
+
+        p0 = Vector3::Transform(p0, unprojection); 
+        p1 = Vector3::Transform(p1, unprojection);
+
+        Vector3 direction = p1 - p0;
+        direction.Normalize();
+
+        Ray ray = Ray(p0, direction);
+        
+        // TODO : For all models which inherit Hittable Class
+        float distance = 0.0f;
+        m_picking = ray.Intersects(model->m_boundingSphere, distance);
+
+        if (m_picking)
+        {
+            Vector3 hitPoint = p0 + direction * distance;
+            pickingEffect->UpdateWorldMatrix(Matrix::CreateTranslation(hitPoint));
+            pickingEffect->UpdateBuffer(m_context);
+            
+            Vector3 c = model->m_boundingSphere.Center;
+            Vector3 v = hitPoint - c;
+            Vector3 n = -cam->GetDirection();
+
+            Vector3 vUnit = v;
+            vUnit.Normalize();
+            n.Normalize();
+            float theta = acos(vUnit.Dot(n));
+
+            float d = v.Length() * sin(theta);
+            float r = model->m_boundingSphere.Radius;
+            float h = sqrt(r * r - d * d);
+            
+            Vector3 p = hitPoint + -n * h; // project hitpoint to hemisphere
+            Vector3 dv = p - c;
+
+            model->UpdateWorldMatrix(model->GetWorldMatrix() * Matrix::CreateTranslation(dv));
+            model->UpdateBuffer(m_context);
+            model->m_boundingSphere.Center = c + dv;
+        }
+    }
+}
+
+void Graphics::ProcessMouseWheel(const int wheel)
+{
+    const int speed = 2;
+    if (m_leftClick && m_picking)
+    {
+        int movement = wheel / 120; 
+        Vector3 dv = model->m_boundingSphere.Center - cam->GetOrigin();
+        dv.Normalize();
+        dv = dv * movement * speed;
+        model->UpdateWorldMatrix(model->GetWorldMatrix() * Matrix::CreateTranslation(dv));
+        model->UpdateBuffer(m_context);
+        model->m_boundingSphere.Center = model->m_boundingSphere.Center + dv;
     }
 }
 void Graphics::UpdateCameraPosition(float dt)
