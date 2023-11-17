@@ -12,8 +12,10 @@
 using namespace std;
 using DirectX::BoundingSphere;
 using DirectX::SimpleMath::Vector3;
+using DirectX::SimpleMath::Vector2;
 using DirectX::SimpleMath::Matrix;
 using DirectX::SimpleMath::Ray;
+using DirectX::SimpleMath::Plane;
 
 Graphics::Graphics(HWND hWnd, const int screenWidth, const int screenHeight)
     :m_window(hWnd), m_width(screenWidth), m_height(screenHeight), 
@@ -283,7 +285,7 @@ void Graphics::Render()
     m_context->GSSetShader(ShaderManager::GetInstance().normalGS.Get(), 0, 0);
     m_context->PSSetShader(ShaderManager::GetInstance().normalPS.Get(), 0, 0);
 
-    model->RenderNormal(m_context);
+    //model->RenderNormal(m_context);
     m_context->GSSetShader(nullptr, 0, 0);
 
     // cube map
@@ -340,7 +342,6 @@ void Graphics::ProcessMouseMove(const int xPos, const int yPos)
     const float ndcX = (xPos * 2.0f / m_width) - 1.0f;
     const float ndcY = -((yPos * 2.0f / m_height) - 1.0f);
 
-    static Vector3 prevPos = Vector3(0.0f);
     // traversal mode
     if (m_fpvMode)
     {    
@@ -349,51 +350,75 @@ void Graphics::ProcessMouseMove(const int xPos, const int yPos)
         SetCursorPos(m_aimPoint.x, m_aimPoint.y);
     }
     // edit mode
-    else if(m_leftClick)
+    else
     {
-        Vector3 p0 = Vector3(ndcX, ndcY, 0.0f);
-        Vector3 p1 = Vector3(ndcX, ndcY, 1.0f);
-        // NDC -> View -> World
-        Matrix unprojection = cam->GetProjectionMatrix().Invert() * cam->GetViewMatrix().Invert();
-
-        p0 = Vector3::Transform(p0, unprojection); 
-        p1 = Vector3::Transform(p1, unprojection);
-
-        Vector3 direction = p1 - p0;
-        direction.Normalize();
-
-        Ray ray = Ray(p0, direction);
-        
-        // TODO : For all models which inherit Hittable Class
-        float distance = 0.0f;
-        m_picking = ray.Intersects(model->m_boundingSphere, distance);
-
-        if (m_picking)
+        if (m_leftClick)
         {
-            Vector3 hitPoint = p0 + direction * distance;
-            pickingEffect->UpdateWorldMatrix(Matrix::CreateTranslation(hitPoint));
-            pickingEffect->UpdateBuffer(m_context);
-            
-            Vector3 c = model->m_boundingSphere.Center;
-            Vector3 v = hitPoint - c;
-            Vector3 n = -cam->GetDirection();
+            if (m_picking) // on same plane
+            {
+                Matrix view = cam->GetViewMatrix();
+                Matrix projection = cam->GetProjectionMatrix();
+                Matrix unprojection = projection.Invert() * view.Invert();
 
-            Vector3 vUnit = v;
-            vUnit.Normalize();
-            n.Normalize();
-            float theta = acos(vUnit.Dot(n));
+                Vector3 p0 = Vector3(ndcX, ndcY, 0.0f); 
+                Vector3 p1 = Vector3(ndcX, ndcY, 1.0f);
 
-            float d = v.Length() * sin(theta);
-            float r = model->m_boundingSphere.Radius;
-            float h = sqrt(r * r - d * d);
-            
-            Vector3 p = hitPoint + -n * h; // project hitpoint to hemisphere
-            Vector3 dv = p - c;
+                p0 = Vector3::Transform(p0, unprojection);
+                p1 = Vector3::Transform(p1, unprojection);
+                Vector3 direction = p1 - p0;
+                direction.Normalize();
 
-            model->UpdateWorldMatrix(model->GetWorldMatrix() * Matrix::CreateTranslation(dv));
-            model->UpdateBuffer(m_context);
-            model->m_boundingSphere.Center = c + dv;
+                Ray ray = Ray(p0, direction);
+                float distance = 0.0f;
+                ray.Intersects(m_draggingPlane, distance);
+
+                Vector3 hitPoint = p0 + direction * distance;
+                Vector3 dv = hitPoint - prevHit;
+
+                model->UpdateWorldMatrix(model->GetWorldMatrix() * Matrix::CreateTranslation(dv));
+                model->UpdateBuffer(m_context);
+                model->m_boundingSphere.Center = model->m_boundingSphere.Center + dv;
+
+                pickingEffect->UpdateWorldMatrix(Matrix::CreateTranslation(hitPoint));
+                pickingEffect->UpdateBuffer(m_context);
+
+                prevHit = hitPoint;
+            }
+            else
+            {
+                Vector3 p0 = Vector3(ndcX, ndcY, 0.0f);
+                Vector3 p1 = Vector3(ndcX, ndcY, 1.0f);
+                // NDC -> View -> World
+                Matrix unprojection = cam->GetProjectionMatrix().Invert() * cam->GetViewMatrix().Invert();
+
+                p0 = Vector3::Transform(p0, unprojection);
+                p1 = Vector3::Transform(p1, unprojection);
+
+                Vector3 direction = p1 - p0;
+                direction.Normalize();
+
+                Ray ray = Ray(p0, direction);
+
+                // TODO : For all models which inherit Hittable Class
+                float distance = 0.0f;
+                bool hit = ray.Intersects(model->m_boundingSphere, distance);
+                if (hit)
+                {
+                    if (!m_picking) m_picking = true;
+                    Vector3 hitPoint = p0 + direction * distance;
+                    Vector3 n = -cam->GetDirection();
+                    n.Normalize();
+
+                    prevHit = hitPoint;
+                    m_draggingPlane = Plane(hitPoint, n);
+
+                    pickingEffect->UpdateWorldMatrix(Matrix::CreateTranslation(hitPoint));
+                    pickingEffect->UpdateBuffer(m_context);
+                }
+            }
         }
+        else
+            m_picking = false;
     }
 }
 
@@ -406,9 +431,20 @@ void Graphics::ProcessMouseWheel(const int wheel)
         Vector3 dv = model->m_boundingSphere.Center - cam->GetOrigin();
         dv.Normalize();
         dv = dv * movement * speed;
-        model->UpdateWorldMatrix(model->GetWorldMatrix() * Matrix::CreateTranslation(dv));
+
+        Matrix m = Matrix::CreateTranslation(dv);
+        model->UpdateWorldMatrix(model->GetWorldMatrix() * m);
         model->UpdateBuffer(m_context);
         model->m_boundingSphere.Center = model->m_boundingSphere.Center + dv;
+
+        pickingEffect->UpdateWorldMatrix(pickingEffect->GetWorldMatrix() * m);
+        pickingEffect->UpdateBuffer(m_context);
+
+        Vector3 n = -cam->GetDirection();
+        n.Normalize();
+        m_draggingPlane = Plane(model->m_boundingSphere.Center, n);
+
+        prevHit = prevHit + dv;
     }
 }
 void Graphics::UpdateCameraPosition(float dt)

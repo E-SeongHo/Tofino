@@ -24,7 +24,6 @@ struct ModelBuffer // Must Store as a Column Matrix
 {
     DirectX::SimpleMath::Matrix world; // equal model matrix 
     DirectX::SimpleMath::Matrix worldIT; 
-    DirectX::SimpleMath::Matrix transInView; // transform in view space (For mouse picking)
 };
 
 class Hittable
@@ -64,7 +63,6 @@ public:
     DirectX::SimpleMath::Matrix GetWorldMatrix();
 
     void UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow);
-    void UpdateTransInViewMatrix();
 
     void LoadTexture(ComPtr<ID3D11Device>& device, const std::wstring filepath);
     void SetSRVs(ComPtr<ID3D11DeviceContext>& context);

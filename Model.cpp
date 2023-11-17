@@ -79,7 +79,8 @@ void Geometry::UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow)
 
 void Geometry::LoadTexture(ComPtr<ID3D11Device>& device, const wstring filepath)
 {
-    const wstring diffuseFilename = filepath + L"worn-painted-metal_albedo.dds";
+    //const wstring diffuseFilename = filepath + L"worn-painted-metal_albedo.dds";
+    const wstring diffuseFilename = filepath + L"wet-mossy-rocks_albedo.dds";
 
     TextureLoader::CreateDDSTexture(device, diffuseFilename, m_diffuseSRV);
 }

@@ -92,4 +92,6 @@ public:
     bool m_leftClick = false;
     bool m_rightClick = false;
     bool m_picking = false;
+    DirectX::SimpleMath::Plane m_draggingPlane;
+    DirectX::SimpleMath::Vector3 prevHit;
 };
