@@ -6,7 +6,7 @@
 #include <DirectXCollision.h>
 
 #include "Graphics.h"
-#include "Model.h"
+#include "Geometry.h"
 
 // using Microsoft::WRL::ComPtr;
 using namespace std;
@@ -35,14 +35,19 @@ bool Graphics::Init()
 
     //model = make_shared<Triangle>();
     //model = new Cube();
-    model = new Sphere();
-    model->Init(1.0f, true);
-    model->LoadTexture(m_device, L"./Assets/Texture/Test/");
-    model->CreateBuffers(m_device);
+
+    sphere = new Sphere();
+    sphere->Init(1.0f, true);
+    sphere->LoadDDSTexture(m_device, L"./Assets/Texture/Test/");
+    sphere->CreateBuffers(m_device);
+
+    model = new Model();
+    model->LoadModel("D:/Workspace/3DModels/E-45-Aircraft/E 45 Aircraft_obj.obj");
+    model->Init(m_device);
 
     pickingEffect = new Sphere();
     pickingEffect->Init(0.3f, false);
-    pickingEffect->LoadTexture(m_device, L"./Assets/Texture/Test/");
+    pickingEffect->LoadDDSTexture(m_device, L"./Assets/Texture/Test/");
     pickingEffect->CreateBuffers(m_device);
 
     m_copySquare = new Square();
@@ -50,7 +55,7 @@ bool Graphics::Init()
     m_copySquare->CreateBuffers(m_device);
 
     envMap = new EnvMap();
-    envMap->Init(m_device, L"./Assets/Cubemap/HDRI/SandSloot/");
+    envMap->Init(m_device, L"./Assets/Cubemap/HDRI/PlanetaryEarth/");
     // envMap->m_mesh->CreateBuffers(); // Init()내부에서 실행
     
     ShaderManager::GetInstance().InitShaders(m_device);
@@ -242,8 +247,8 @@ void Graphics::Update(float dt)
 
     // Model 
     //cout << model->m_boundingSphere.Center.z << endl;
-    model->UpdateWorldMatrix(Matrix::CreateRotationY(1.0f * dt) * Matrix::CreateRotationX(1.0f * dt) * model->GetWorldMatrix());
-    model->UpdateBuffer(m_context);
+    sphere->UpdateWorldMatrix(Matrix::CreateRotationY(1.0f * dt) * Matrix::CreateRotationX(1.0f * dt) * sphere->GetWorldMatrix());
+    sphere->UpdateBuffer(m_context);
 }
 
 void Graphics::Render()
@@ -261,7 +266,6 @@ void Graphics::Render()
     m_context->VSSetShader(ShaderManager::GetInstance().basicVS.Get(), 0, 0);
     m_context->PSSetShader(ShaderManager::GetInstance().basicPS.Get(), 0, 0);
     m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
-    model->SetSRVs(m_context);
     m_context->RSSetState(m_solidState.Get());
     //m_context->RSSetState(m_wireState.Get());
 
@@ -270,6 +274,7 @@ void Graphics::Render()
     m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     SetGlobalConstantBuffers();
+    //sphere->Render(m_context);
     model->Render(m_context);
     
     if (m_picking && m_leftClick)
@@ -375,9 +380,9 @@ void Graphics::ProcessMouseMove(const int xPos, const int yPos)
                 Vector3 hitPoint = p0 + direction * distance;
                 Vector3 dv = hitPoint - prevHit;
 
-                model->UpdateWorldMatrix(model->GetWorldMatrix() * Matrix::CreateTranslation(dv));
-                model->UpdateBuffer(m_context);
-                model->m_boundingSphere.Center = model->m_boundingSphere.Center + dv;
+                sphere->UpdateWorldMatrix(sphere->GetWorldMatrix() * Matrix::CreateTranslation(dv));
+                sphere->UpdateBuffer(m_context);
+                sphere->m_boundingSphere.Center = sphere->m_boundingSphere.Center + dv;
 
                 pickingEffect->UpdateWorldMatrix(Matrix::CreateTranslation(hitPoint));
                 pickingEffect->UpdateBuffer(m_context);
@@ -401,7 +406,7 @@ void Graphics::ProcessMouseMove(const int xPos, const int yPos)
 
                 // TODO : For all models which inherit Hittable Class
                 float distance = 0.0f;
-                bool hit = ray.Intersects(model->m_boundingSphere, distance);
+                bool hit = ray.Intersects(sphere->m_boundingSphere, distance);
                 if (hit)
                 {
                     if (!m_picking) m_picking = true;
@@ -428,21 +433,21 @@ void Graphics::ProcessMouseWheel(const int wheel)
     if (m_leftClick && m_picking)
     {
         int movement = wheel / 120; 
-        Vector3 dv = model->m_boundingSphere.Center - cam->GetOrigin();
+        Vector3 dv = sphere->m_boundingSphere.Center - cam->GetOrigin();
         dv.Normalize();
         dv = dv * movement * speed;
 
         Matrix m = Matrix::CreateTranslation(dv);
-        model->UpdateWorldMatrix(model->GetWorldMatrix() * m);
-        model->UpdateBuffer(m_context);
-        model->m_boundingSphere.Center = model->m_boundingSphere.Center + dv;
+        sphere->UpdateWorldMatrix(sphere->GetWorldMatrix() * m);
+        sphere->UpdateBuffer(m_context);
+        sphere->m_boundingSphere.Center = sphere->m_boundingSphere.Center + dv;
 
         pickingEffect->UpdateWorldMatrix(pickingEffect->GetWorldMatrix() * m);
         pickingEffect->UpdateBuffer(m_context);
 
         Vector3 n = -cam->GetDirection();
         n.Normalize();
-        m_draggingPlane = Plane(model->m_boundingSphere.Center, n);
+        m_draggingPlane = Plane(sphere->m_boundingSphere.Center, n);
 
         prevHit = prevHit + dv;
     }
@@ -518,7 +523,7 @@ void Graphics::ToneMappingSetUp()
 Graphics::~Graphics()
 {
     delete cam;
-    delete model;
+    delete sphere;
     delete envMap;
     delete m_copySquare;
 }

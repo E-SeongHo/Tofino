@@ -7,6 +7,7 @@
 #include <windows.h> 
 #include <exception>
 #include <iostream>
+#include <vector>
 
 inline void ThrowIfFailed(HRESULT hr) {
     if (FAILED(hr)) {
@@ -47,5 +48,26 @@ namespace Util
         context->Unmap(constantBuffer.Get(), 0);
     }
 
+    template<typename T_Vertex>
+    void CreateVertexBuffer(ComPtr<ID3D11Device>& device, const std::vector<T_Vertex>& vertices, ComPtr<ID3D11Buffer>& vertexBuffer)
+    {
+        // D3D11_USAGE enumeration (d3d11.h)
+        // https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_usage
+        D3D11_BUFFER_DESC ds;
+        ZeroMemory(&ds, sizeof(ds));
+        ds.Usage = D3D11_USAGE_IMMUTABLE;
+        ds.ByteWidth = UINT((sizeof(T_Vertex)) * vertices.size());
+        ds.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        ds.CPUAccessFlags = 0; // 0 if no CPU access is necessary.
+        ds.StructureByteStride = sizeof(T_Vertex);
 
+        D3D11_SUBRESOURCE_DATA data = { 0 };
+        data.pSysMem = vertices.data();
+        data.SysMemPitch = 0;
+        data.SysMemSlicePitch = 0;
+
+        ThrowIfFailed(device->CreateBuffer(&ds, &data, vertexBuffer.GetAddressOf()));
+    }
+
+    void CreateIndexBuffer(ComPtr<ID3D11Device>& device, const std::vector<uint32_t>& indices, ComPtr<ID3D11Buffer>& indexBuffer);
 }

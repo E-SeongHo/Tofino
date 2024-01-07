@@ -1,394 +1,197 @@
-
-#include <vector>
-#include <iostream>
-
 #include "Model.h"
 #include "TextureLoader.h"
 
-using namespace std;
-using DirectX::SimpleMath::Vector3;
-using DirectX::SimpleMath::Vector2;
 using DirectX::SimpleMath::Matrix;
-using DirectX::BoundingSphere;
+using DirectX::SimpleMath::Vector3;
+using namespace std;
 
-void Geometry::ReverseIndices()
+void Model::LoadModel(const std::string& filename)
 {
-    std::reverse(m_indices.begin(), m_indices.end());
-}
-void Geometry::CreateBuffers(ComPtr<ID3D11Device>& device)
-{
-    Geometry::CreateVertexBuffer(device, m_vertices, m_vertexBuffer);
-    Geometry::CreateIndexBuffer(device, m_indices, m_indexBuffer);
-    Util::CreateConstantBuffer(device, m_constBufferCPU, m_constBufferGPU);
-}
+	int idx = filename.rfind("/");
+	m_directory = filename.substr(0, idx + 1);
 
-void Geometry::UpdateBuffer(ComPtr<ID3D11DeviceContext>& context)
-{
-    Util::UpdateConstantBuffer(context, m_constBufferCPU, m_constBufferGPU);
-}
+	Assimp::Importer importer;
+	const aiScene* scene = importer.ReadFile(filename,
+		aiProcess_Triangulate | aiProcess_ConvertToLeftHanded);
 
-void Geometry::Render(ComPtr<ID3D11DeviceContext>& context)
-{
-    context->VSSetConstantBuffers(0, 1, m_constBufferGPU.GetAddressOf()); 
-
-    UINT stride = sizeof(Vertex);
-    UINT offset = 0;
-    context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-    context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-    context->DrawIndexed(m_indexCount, 0, 0);
-}
-
-void Geometry::RenderNormal(ComPtr<ID3D11DeviceContext>& context)
-{
-    context->VSSetConstantBuffers(0, 1, m_constBufferGPU.GetAddressOf());
-
-    UINT stride = sizeof(Vertex);
-    UINT offset = 0;
-    context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-    //context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-    context->Draw(UINT(m_vertices.size()), 0);
-}
-
-void Geometry::CopySquareRenderSetup(ComPtr<ID3D11DeviceContext>& context)
-{
-    // PS SET CONSTANT ( ex) gamma )
-    UINT stride = sizeof(Vertex);
-    UINT offset = 0;
-    context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-    context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-
-    context->DrawIndexed(m_indexCount, 0, 0);
-}
-
-
-DirectX::SimpleMath::Matrix Geometry::GetWorldMatrix()
-{
-    return m_constBufferCPU.world.Transpose();
-}
-
-
-void Geometry::UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow)
-{
-    Matrix worldColumn = worldRow.Transpose();
-    m_constBufferCPU.world = worldColumn;
+	if (!scene)
+	{
+		std::cout << "failed to load model ( " << filename << " ) " << importer.GetErrorString() << std::endl;
+		return;
+	}
     
-    m_constBufferCPU.worldIT = worldColumn;
-    m_constBufferCPU.worldIT.Translation(Vector3(0.0f));
-    m_constBufferCPU.worldIT.Invert().Transpose();
+    Matrix tr; // Initial transformation
+	LoadNode(scene->mRootNode, scene, tr);
 }
 
-void Geometry::LoadTexture(ComPtr<ID3D11Device>& device, const wstring filepath)
-{
-    //const wstring diffuseFilename = filepath + L"worn-painted-metal_albedo.dds";
-    const wstring diffuseFilename = filepath + L"wet-mossy-rocks_albedo.dds";
+void Model::Init(ComPtr<ID3D11Device>& device)
+{	// Load Textures, Create Buffers
 
-    TextureLoader::CreateDDSTexture(device, diffuseFilename, m_diffuseSRV);
+	using namespace DirectX;
+	// Normalize Vertex
+	Vector3 vmin(1000, 1000, 1000);
+	Vector3 vmax(-1000, -1000, -1000);
+	
+	for (auto& mesh : m_meshes) 
+	{
+		for (auto& v : mesh.m_vertices) 
+		{
+			vmin.x = XMMin(vmin.x, v.pos.x);
+			vmin.y = XMMin(vmin.y, v.pos.y);
+			vmin.z = XMMin(vmin.z, v.pos.z);
+			vmax.x = XMMax(vmax.x, v.pos.x);
+			vmax.y = XMMax(vmax.y, v.pos.y);
+			vmax.z = XMMax(vmax.z, v.pos.z);
+		}
+	}
+
+	float dx = vmax.x - vmin.x, dy = vmax.y - vmin.y, dz = vmax.z - vmin.z;
+	float dl = XMMax(XMMax(dx, dy), dz);
+	float cx = (vmax.x + vmin.x) * 0.5f, cy = (vmax.y + vmin.y) * 0.5f,
+		cz = (vmax.z + vmin.z) * 0.5f;
+
+	for (auto& mesh : m_meshes) 
+	{
+		for (auto& v : mesh.m_vertices) 
+		{
+			v.pos.x = (v.pos.x - cx) / dl;
+			v.pos.y = (v.pos.y - cy) / dl;
+			v.pos.z = (v.pos.z - cz) / dl;
+		}
+	}
+
+	// for just make one shared constant buffer instead of same different constant buffers for every mesh
+	m_constBufferCPU.world = Matrix();
+	Util::CreateConstantBuffer(device, m_constBufferCPU, m_constBufferGPU);
+
+	for (auto& mesh : m_meshes)
+	{
+		// diffuse texture
+		TextureLoader::CreateTextureFromImage(device, mesh.m_diffuseFilename, mesh.m_diffuseSRV, true);
+		
+		// Create Buffers
+		mesh.m_indexCount = (UINT)mesh.m_indices.size();
+		mesh.m_constBufferCPU.world = Matrix();
+		
+		// mesh.CreateBuffers(device);
+		Util::CreateVertexBuffer(device, mesh.m_vertices, mesh.m_vertexBuffer);
+		Util::CreateIndexBuffer(device, mesh.m_indices, mesh.m_indexBuffer);
+		mesh.m_constBufferGPU = m_constBufferGPU; // sharing resource
+	}
 }
 
-void Geometry::SetSRVs(ComPtr<ID3D11DeviceContext>& context)
+void Model::Render(ComPtr<ID3D11DeviceContext>& context)
 {
-    context->PSSetShaderResources(0, 1, m_diffuseSRV.GetAddressOf());
+	for (auto& mesh : m_meshes)
+	{
+		mesh.SetSRVs(context);
+		mesh.Render(context);
+	}
 }
 
-void Triangle::Init(const float scale, bool isHittable)
+DirectX::SimpleMath::Matrix Model::GetWorldMatrix()
 {
-    m_vertices.push_back(Vertex{ Vector3{ -1.0f, -1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
-    m_vertices.push_back(Vertex{ Vector3{ 0.0f, 1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
-    m_vertices.push_back(Vertex{ Vector3{ 1.0f, -1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
-
-    m_indices = { 0, 1, 2 };
-    m_indexCount = (UINT)m_indices.size();
-
-    m_constBufferCPU.world = Matrix();
+	return m_constBufferCPU.world.Transpose();
 }
 
-void Square::Init(const float scale, bool isHittable)
+void Model::UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow)
 {
-    vector<Vector3> positions;
-    vector<Vector3> colors;
-    vector<Vector3> normals;
-    vector<Vector2> texcoords; 
+	Matrix worldColumn = worldRow.Transpose();
+	m_constBufferCPU.world = worldColumn;
+	m_constBufferCPU.worldIT = worldColumn;
+	m_constBufferCPU.worldIT.Translation(Vector3(0.0f));
+	m_constBufferCPU.worldIT.Invert().Transpose();
+}
 
-    positions.push_back(Vector3(-1.0f, 1.0f, 0.0f) * scale);
-    positions.push_back(Vector3(1.0f, 1.0f, 0.0f) * scale);
-    positions.push_back(Vector3(1.0f, -1.0f, 0.0f) * scale);
-    positions.push_back(Vector3(-1.0f, -1.0f, 0.0f) * scale);
-    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
-    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
-    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
-    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
-    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
-    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
-    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
-    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
+void Model::UpdateBuffer(ComPtr<ID3D11DeviceContext>& context)
+{
+	Util::UpdateConstantBuffer(context, m_constBufferCPU, m_constBufferGPU);
+}
 
-    texcoords.push_back(Vector2(0.0f, 0.0f));
-    texcoords.push_back(Vector2(1.0f, 0.0f));
-    texcoords.push_back(Vector2(1.0f, 1.0f));
-    texcoords.push_back(Vector2(0.0f, 1.0f));
-
-    for (size_t i = 0; i < positions.size(); i++) {
-        Vertex v;
-        v.pos = positions[i];
-        v.color = colors[i];
-        v.normal = normals[i];
-        v.uv = texcoords[i];
-
-        m_vertices.push_back(v);
+void Model::LoadNode(aiNode* node, const aiScene* scene, DirectX::SimpleMath::Matrix tr)
+{
+    Matrix m;
+    ai_real* temp = &node->mTransformation.a1;
+    float* mTemp = &m._11;
+    for (int t = 0; t < 16; t++) 
+	{
+        mTemp[t] = float(temp[t]);
     }
-    m_indices = { 0, 1, 2, 0, 2, 3, };
+    m = m.Transpose() * tr;
 
-    m_indexCount = (UINT)m_indices.size();
-
-    m_constBufferCPU.world = Matrix();
-}
-
-void Cube::Init(const float scale, bool isHittable)
-{
-    vector<Vector3> positions;
-    vector<Vector3> colors;
-    vector<Vector3> normals;
-    vector<Vector2> texcoords; 
-
-    // À­¸é
-    positions.push_back(Vector3(-1.0f, 1.0f, -1.0f) * scale);
-    positions.push_back(Vector3(-1.0f, 1.0f, 1.0f) * scale);
-    positions.push_back(Vector3(1.0f, 1.0f, 1.0f) * scale);
-    positions.push_back(Vector3(1.0f, 1.0f, -1.0f) * scale);
-    colors.push_back(Vector3(1.0f, 0.0f, 0.0f));
-    colors.push_back(Vector3(1.0f, 0.0f, 0.0f));
-    colors.push_back(Vector3(1.0f, 0.0f, 0.0f));
-    colors.push_back(Vector3(1.0f, 0.0f, 0.0f));
-    normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
-    normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
-    normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
-    normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
-    texcoords.push_back(Vector2(0.0f, 0.0f));
-    texcoords.push_back(Vector2(1.0f, 0.0f));
-    texcoords.push_back(Vector2(1.0f, 1.0f));
-    texcoords.push_back(Vector2(0.0f, 1.0f));
-
-    // ¾Æ·§¸é
-    positions.push_back(Vector3(-1.0f, -1.0f, -1.0f) * scale);
-    positions.push_back(Vector3(1.0f, -1.0f, -1.0f) * scale);
-    positions.push_back(Vector3(1.0f, -1.0f, 1.0f) * scale);
-    positions.push_back(Vector3(-1.0f, -1.0f, 1.0f) * scale);
-    colors.push_back(Vector3(0.0f, 1.0f, 0.0f));
-    colors.push_back(Vector3(0.0f, 1.0f, 0.0f));
-    colors.push_back(Vector3(0.0f, 1.0f, 0.0f));
-    colors.push_back(Vector3(0.0f, 1.0f, 0.0f));
-    normals.push_back(Vector3(0.0f, -1.0f, 0.0f));
-    normals.push_back(Vector3(0.0f, -1.0f, 0.0f));
-    normals.push_back(Vector3(0.0f, -1.0f, 0.0f));
-    normals.push_back(Vector3(0.0f, -1.0f, 0.0f));
-    texcoords.push_back(Vector2(0.0f, 0.0f));
-    texcoords.push_back(Vector2(1.0f, 0.0f));
-    texcoords.push_back(Vector2(1.0f, 1.0f));
-    texcoords.push_back(Vector2(0.0f, 1.0f));
-
-    // ¾Õ¸é
-    positions.push_back(Vector3(-1.0f, -1.0f, -1.0f) * scale);
-    positions.push_back(Vector3(-1.0f, 1.0f, -1.0f) * scale);
-    positions.push_back(Vector3(1.0f, 1.0f, -1.0f) * scale);
-    positions.push_back(Vector3(1.0f, -1.0f, -1.0f) * scale);
-    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
-    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
-    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
-    colors.push_back(Vector3(0.0f, 0.0f, 1.0f));
-    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
-    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
-    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
-    normals.push_back(Vector3(0.0f, 0.0f, -1.0f));
-    texcoords.push_back(Vector2(0.0f, 0.0f));
-    texcoords.push_back(Vector2(1.0f, 0.0f));
-    texcoords.push_back(Vector2(1.0f, 1.0f));
-    texcoords.push_back(Vector2(0.0f, 1.0f));
-
-    // µÞ¸é
-    positions.push_back(Vector3(-1.0f, -1.0f, 1.0f) * scale);
-    positions.push_back(Vector3(1.0f, -1.0f, 1.0f) * scale);
-    positions.push_back(Vector3(1.0f, 1.0f, 1.0f) * scale);
-    positions.push_back(Vector3(-1.0f, 1.0f, 1.0f) * scale);
-    colors.push_back(Vector3(0.0f, 1.0f, 1.0f));
-    colors.push_back(Vector3(0.0f, 1.0f, 1.0f));
-    colors.push_back(Vector3(0.0f, 1.0f, 1.0f));
-    colors.push_back(Vector3(0.0f, 1.0f, 1.0f));
-    normals.push_back(Vector3(0.0f, 0.0f, 1.0f));
-    normals.push_back(Vector3(0.0f, 0.0f, 1.0f));
-    normals.push_back(Vector3(0.0f, 0.0f, 1.0f));
-    normals.push_back(Vector3(0.0f, 0.0f, 1.0f));
-    texcoords.push_back(Vector2(0.0f, 0.0f));
-    texcoords.push_back(Vector2(1.0f, 0.0f));
-    texcoords.push_back(Vector2(1.0f, 1.0f));
-    texcoords.push_back(Vector2(0.0f, 1.0f));
-
-    // ¿ÞÂÊ
-    positions.push_back(Vector3(-1.0f, -1.0f, 1.0f) * scale);
-    positions.push_back(Vector3(-1.0f, 1.0f, 1.0f) * scale);
-    positions.push_back(Vector3(-1.0f, 1.0f, -1.0f) * scale);
-    positions.push_back(Vector3(-1.0f, -1.0f, -1.0f) * scale);
-    colors.push_back(Vector3(1.0f, 1.0f, 0.0f));
-    colors.push_back(Vector3(1.0f, 1.0f, 0.0f));
-    colors.push_back(Vector3(1.0f, 1.0f, 0.0f));
-    colors.push_back(Vector3(1.0f, 1.0f, 0.0f));
-    normals.push_back(Vector3(-1.0f, 0.0f, 0.0f));
-    normals.push_back(Vector3(-1.0f, 0.0f, 0.0f));
-    normals.push_back(Vector3(-1.0f, 0.0f, 0.0f));
-    normals.push_back(Vector3(-1.0f, 0.0f, 0.0f));
-    texcoords.push_back(Vector2(0.0f, 0.0f));
-    texcoords.push_back(Vector2(1.0f, 0.0f));
-    texcoords.push_back(Vector2(1.0f, 1.0f));
-    texcoords.push_back(Vector2(0.0f, 1.0f));
-
-    // ¿À¸¥ÂÊ
-    positions.push_back(Vector3(1.0f, -1.0f, 1.0f) * scale);
-    positions.push_back(Vector3(1.0f, -1.0f, -1.0f) * scale);
-    positions.push_back(Vector3(1.0f, 1.0f, -1.0f) * scale);
-    positions.push_back(Vector3(1.0f, 1.0f, 1.0f) * scale);
-    colors.push_back(Vector3(1.0f, 0.0f, 1.0f));
-    colors.push_back(Vector3(1.0f, 0.0f, 1.0f));
-    colors.push_back(Vector3(1.0f, 0.0f, 1.0f));
-    colors.push_back(Vector3(1.0f, 0.0f, 1.0f));
-    normals.push_back(Vector3(1.0f, 0.0f, 0.0f));
-    normals.push_back(Vector3(1.0f, 0.0f, 0.0f));
-    normals.push_back(Vector3(1.0f, 0.0f, 0.0f));
-    normals.push_back(Vector3(1.0f, 0.0f, 0.0f));
-    texcoords.push_back(Vector2(0.0f, 0.0f));
-    texcoords.push_back(Vector2(1.0f, 0.0f));
-    texcoords.push_back(Vector2(1.0f, 1.0f));
-    texcoords.push_back(Vector2(0.0f, 1.0f));
-
-    for (size_t i = 0; i < positions.size(); i++) {
-        Vertex v;
-        v.pos = positions[i];
-        v.color = colors[i];
-        v.normal = normals[i];
-        v.uv = texcoords[i];
-
-        m_vertices.push_back(v);
-    }
-
-    m_indices = {
-        0,  1,  2,  0,  2,  3,  // À­¸é
-        4,  5,  6,  4,  6,  7,  // ¾Æ·§¸é
-        8,  9,  10, 8,  10, 11, // ¾Õ¸é
-        12, 13, 14, 12, 14, 15, // µÞ¸é
-        16, 17, 18, 16, 18, 19, // ¿ÞÂÊ
-        20, 21, 22, 20, 22, 23  // ¿À¸¥ÂÊ
-    };
-    m_indexCount = (UINT)m_indices.size();
-
-    m_constBufferCPU.world = Matrix();
-}
-
-void Sphere::Init(const float scale, bool isHittable)
-{
-    // https://www.songho.ca/opengl/gl_sphere.html
-    using namespace DirectX;
-
-    vector<Vector3> positions;
-    vector<Vector3> colors;
-    vector<Vector3> normals;
-    vector<Vector2> texcoords;
-
-    const float radius = 1.0f * scale;
-    const int sectorCount = 20;
-    const int stackCount = 20;
-
-    float sectorStep = XM_2PI / (float)sectorCount;
-    float stackStep = XM_PI / (float)stackCount;
-
-    for (int i = 0; i <= stackCount; ++i)
+    for (UINT i = 0; i < node->mNumMeshes; i++) 
     {
-        float stackAngle = (float)i * stackStep;
-        Vector3 stackStart = Vector3::Transform(Vector3(0.0f, -radius, 0.0f), Matrix::CreateRotationZ(stackAngle));
-        
-        // add (sectorCount+1) vertices per stack
-        // first and last vertices have same position and normal, but different tex coords
-        for (int j = 0; j <= sectorCount; ++j)
-        {
-            float sectorAngle = (float)j * sectorStep;
-            Vector3 currentPoint = Vector3::Transform(stackStart, Matrix::CreateRotationY(sectorAngle));
-            positions.push_back(currentPoint);
-            
-            currentPoint.Normalize();
-            normals.push_back(currentPoint);
-
-            float u = (float)j / sectorCount;
-            float v = 1.0f - ((float)i / stackCount);
-            texcoords.push_back(Vector2(u, v));
-        }
+        aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+        this->LoadMesh(mesh, scene);
     }
 
-    for (size_t i = 0; i < positions.size(); i++) 
+    for (UINT i = 0; i < node->mNumChildren; i++) 
     {
-        Vertex v;
-        v.pos = positions[i];
-        v.color = Vector3(0.5f, 0.5f, 0.5f);
-        v.normal = normals[i];
-        v.uv = texcoords[i];
-
-        m_vertices.push_back(v);
+        this->LoadNode(node->mChildren[i], scene, m);
     }
 
-    for (int i = 0; i < stackCount; ++i)
-    {
-        const int offset = (sectorCount + 1) * i;
-        
-        for (int j = 0; j < sectorCount; ++j)
-        {
-            m_indices.push_back(offset + j);
-            m_indices.push_back(offset + j + 1);
-            m_indices.push_back(offset + j + sectorCount + 1);
-            
-            m_indices.push_back(offset + j + 1);
-            m_indices.push_back(offset + j + 1 + sectorCount + 1);
-            m_indices.push_back(offset + j + sectorCount + 1);
-        }
-    }
-
-    m_indexCount = (UINT)m_indices.size();
-    m_constBufferCPU.world = Matrix();
-
-    if (isHittable)
-    {
-        onActive = isHittable;
-        m_boundingSphere = BoundingSphere(Vector3(0.0f, 0.0f, 0.0f), radius);
-    }
 }
 
-void EnvMap::Init(ComPtr<ID3D11Device>& device, const wstring filepath)
+void Model::LoadMesh(aiMesh* mesh, const aiScene* scene)
 {
-    m_mesh = new Cube();
-    m_mesh->Init(100.0f);
-    m_mesh->ReverseIndices();
+	vector<Vertex> vertices;
+	vector<uint32_t> indices;
+	
+	for (UINT i = 0; i < mesh->mNumVertices; i++)
+	{
+		Vertex vertex;
 
-    const wstring envFilename = filepath + L"EnvHDR.dds";
-    const wstring irradianceFilename = filepath + L"DiffuseHDR.dds";
-    const wstring specularFilename = filepath + L"SpecularHDR.dds";
-    const wstring brdfFilename = filepath + L"Brdf.dds";
+		vertex.pos.x = mesh->mVertices[i].x;
+		vertex.pos.y = mesh->mVertices[i].y;
+		vertex.pos.z = mesh->mVertices[i].z;
 
-    TextureLoader::CreateDDSCubemapTexture(device, envFilename, m_envSRV);
-    TextureLoader::CreateDDSCubemapTexture(device, irradianceFilename, m_irradianceSRV);
-    TextureLoader::CreateDDSCubemapTexture(device, specularFilename, m_specularSRV);
-    TextureLoader::CreateDDSTexture(device, brdfFilename, m_brdfLookUpSRV);
+		vertex.normal.x = mesh->mNormals[i].x;
+		vertex.normal.y = mesh->mNormals[i].y;
+		vertex.normal.z = mesh->mNormals[i].z;
+		vertex.normal.Normalize();
 
-    m_mesh->CreateBuffers(device); // m_mesh°¡ privateÀÌ¹Ç·Î ¿©±â¼­ Buffer »ý¼º
+		if (mesh->mTextureCoords[0])
+		{
+			vertex.uv.x = mesh->mTextureCoords[0][i].x;
+			vertex.uv.y = mesh->mTextureCoords[0][i].y;
+		}
+
+		vertices.push_back(vertex);
+	}
+
+	for (UINT i = 0; i < mesh->mNumFaces; i++)
+	{
+		aiFace face = mesh->mFaces[i];
+		for (UINT j = 0; j < face.mNumIndices; j++)
+		{
+			indices.push_back(face.mIndices[j]);
+		}
+	}
+
+	Mesh newMesh;
+	newMesh.m_vertices = vertices;
+	newMesh.m_indices = indices;
+
+	if (mesh->mMaterialIndex >= 0)
+	{
+		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
+		if (material->GetTextureCount(aiTextureType_DIFFUSE)) 
+		{
+			aiString path;
+			material->GetTexture(aiTextureType_DIFFUSE, 0, &path);
+
+			int idx = string(path.data).rfind("\\");
+			string filename = string(path.data).substr(idx + 1);
+
+			newMesh.m_diffuseFilename = m_directory + filename;
+		}
+		else
+		{
+			cout << "No texture: " << m_directory << endl;
+		}
+	}
+
+	m_meshes.push_back(newMesh);
 }
 
-void EnvMap::Render(ComPtr<ID3D11DeviceContext>& context)
-{
-    context->PSSetShaderResources(0, 1, m_envSRV.GetAddressOf());
-
-    m_mesh->Render(context);
-}
-
-void EnvMap::func(ComPtr<ID3D11DeviceContext>& context)
-{
-    
-}
-
-EnvMap::~EnvMap()
-{
-    delete(m_mesh);
-}

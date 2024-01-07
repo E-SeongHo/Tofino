@@ -20,4 +20,6 @@ namespace TextureLoader
         ComPtr<ID3D11ShaderResourceView>& shaderResourceView);
     void CreateDDSTexture(ComPtr<ID3D11Device>& device, const std::wstring filename,
         ComPtr<ID3D11ShaderResourceView>& shaderResourceView);
+    void CreateTextureFromImage(ComPtr<ID3D11Device>& device, const std::string filename,
+        ComPtr<ID3D11ShaderResourceView>& shaderResourceView, const bool gammaDecode);
 };

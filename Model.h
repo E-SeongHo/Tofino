@@ -1,149 +1,32 @@
 #pragma once
 
-#include <d3d11.h>
-#include <d3dcompiler.h>
-#include <wrl.h> 
-#include <directxtk/SimpleMath.h>
-#include <vector>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 #include <string>
-#include <DirectXCollision.h>
+#include <vector>
 
-#include "Util.h"
+#include "Mesh.h"
 
-
-struct Vertex
-{
-    DirectX::SimpleMath::Vector3 pos;
-    DirectX::SimpleMath::Vector3 color;
-    DirectX::SimpleMath::Vector3 normal;
-    DirectX::SimpleMath::Vector2 uv;
-};
-
-// 16Byte align
-struct ModelBuffer // Must Store as a Column Matrix 
-{
-    DirectX::SimpleMath::Matrix world; // equal model matrix 
-    DirectX::SimpleMath::Matrix worldIT; 
-};
-
-class Hittable
+class Model
 {
 public:
-    bool onActive = false;
-    DirectX::BoundingSphere m_boundingSphere;
-};
+	void LoadModel(const std::string& filename);
+	void Init(ComPtr<ID3D11Device>& device);
+	void Render(ComPtr<ID3D11DeviceContext>& context);
+	void UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow);
+	void UpdateBuffer(ComPtr<ID3D11DeviceContext>& context);
+	DirectX::SimpleMath::Matrix GetWorldMatrix();
 
-using Microsoft::WRL::ComPtr;
-class Geometry : public Hittable
-{
-protected: 
-    ComPtr<ID3D11Buffer> m_vertexBuffer;
-    ComPtr<ID3D11Buffer> m_indexBuffer;
-    ComPtr<ID3D11Buffer> m_constBufferGPU;
-    UINT m_indexCount = 0;
-
-    ModelBuffer m_constBufferCPU;
-
-    // Meshes
-    std::vector<Vertex> m_vertices;
-    std::vector<uint32_t> m_indices;
-
-    // Textures
-    ComPtr<ID3D11ShaderResourceView> m_diffuseSRV;
-
-public:
-    virtual void Init(const float scale = 1.0f, bool isHittable = false) = 0;
-    void ReverseIndices();
-    
-    void CreateBuffers(ComPtr<ID3D11Device>& device);
-    void UpdateBuffer(ComPtr<ID3D11DeviceContext>& context);
-    void Render(ComPtr<ID3D11DeviceContext>& context);
-    void RenderNormal(ComPtr<ID3D11DeviceContext>& context);
-    void CopySquareRenderSetup(ComPtr<ID3D11DeviceContext>& context);
-    DirectX::SimpleMath::Matrix GetWorldMatrix();
-
-    void UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow);
-
-    void LoadTexture(ComPtr<ID3D11Device>& device, const std::wstring filepath);
-    void SetSRVs(ComPtr<ID3D11DeviceContext>& context);
-
-protected:
-    static void CreateVertexBuffer(ComPtr<ID3D11Device>& device, const std::vector<Vertex>& vertices, ComPtr<ID3D11Buffer>& vertexBuffer)
-    {
-        // D3D11_USAGE enumeration (d3d11.h)
-        // https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_usage
-        D3D11_BUFFER_DESC ds;
-        ZeroMemory(&ds, sizeof(ds));
-        ds.Usage = D3D11_USAGE_IMMUTABLE;
-        ds.ByteWidth = UINT((sizeof(Vertex)) * vertices.size());
-        ds.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-        ds.CPUAccessFlags = 0; // 0 if no CPU access is necessary.
-        ds.StructureByteStride = sizeof(Vertex);
-
-        D3D11_SUBRESOURCE_DATA data = { 0 };
-        data.pSysMem = vertices.data();
-        data.SysMemPitch = 0;
-        data.SysMemSlicePitch = 0;
-
-        ThrowIfFailed(device->CreateBuffer(&ds, &data, vertexBuffer.GetAddressOf()));
-    }
-    static void CreateIndexBuffer(ComPtr<ID3D11Device>& device, const std::vector<uint32_t>& indices, ComPtr<ID3D11Buffer>& indexBuffer)
-    {
-        D3D11_BUFFER_DESC ds = {};
-        // ZeroMemory(&ds, sizeof(ds));
-        ds.Usage = D3D11_USAGE_IMMUTABLE;
-        ds.ByteWidth = UINT(indices.size() * sizeof(uint32_t));
-        ds.BindFlags = D3D11_BIND_INDEX_BUFFER;
-        ds.CPUAccessFlags = 0;
-        ds.StructureByteStride = sizeof(uint32_t);
-
-        D3D11_SUBRESOURCE_DATA data = { 0 };
-        data.pSysMem = indices.data();
-        data.SysMemPitch = 0;
-        data.SysMemSlicePitch = 0;
-
-        ThrowIfFailed(device->CreateBuffer(&ds, &data, indexBuffer.GetAddressOf()));
-    }
-};
-
-class Triangle : public Geometry
-{
-public:
-    void Init(const float scale = 1.0f, bool isHittable = false) override;
-};
-
-class Square : public Geometry
-{
-public:
-    void Init(const float scale = 1.0f, bool isHittable = false) override;
-};
-
-class Cube : public Geometry
-{
-public:
-    void Init(const float scale = 1.0f, bool isHittable = false) override;
-};
-
-class Sphere : public Geometry
-{
-public:
-    void Init(const float scale = 1.0f, bool isHittable = false) override;
-};
-
-class EnvMap 
-{
 private:
-    Geometry* m_mesh = nullptr;
+	void LoadNode(aiNode* node, const aiScene* scene, DirectX::SimpleMath::Matrix tr);
+	void LoadMesh(aiMesh* mesh, const aiScene* scene);
+	//void LoadMaterials(const aiScene* scene); // texture가 많아지면 optimize : preload for duplicated textures
 
-    ComPtr<ID3D11ShaderResourceView> m_envSRV;
-    // For IBL
-    ComPtr<ID3D11ShaderResourceView> m_irradianceSRV;
-    ComPtr<ID3D11ShaderResourceView> m_specularSRV;
-    ComPtr<ID3D11ShaderResourceView> m_brdfLookUpSRV;
+private:
+	std::string m_directory;
+	std::vector<Mesh> m_meshes;
 
-public:
-    void Init(ComPtr<ID3D11Device>& device, const std::wstring filepath);
-    void Render(ComPtr<ID3D11DeviceContext>& context);
-    void func(ComPtr<ID3D11DeviceContext>& context);
-    ~EnvMap();
+	ModelBuffer m_constBufferCPU;
+	ComPtr<ID3D11Buffer> m_constBufferGPU;
 };

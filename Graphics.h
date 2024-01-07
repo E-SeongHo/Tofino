@@ -8,6 +8,7 @@
 #include <vector>
 #include <directxtk/SimpleMath.h>
 
+#include "Geometry.h"
 #include "Model.h"
 #include "Camera.h"
 #include "ShaderManager.h"
@@ -50,7 +51,8 @@ private:
     D3D11_VIEWPORT m_screenViewport;
 
     Camera* cam = nullptr;
-    Geometry* model = nullptr;
+    Geometry* sphere = nullptr;
+    Model* model = nullptr;
     EnvMap* envMap = nullptr;
     Geometry* pickingEffect = nullptr;
 
