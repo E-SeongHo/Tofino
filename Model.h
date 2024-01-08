@@ -7,13 +7,15 @@
 #include <vector>
 
 #include "Mesh.h"
+#include "Material.h"
 
-class Model
+class Model : public Hittable
 {
 public:
 	void LoadModel(const std::string& filename);
-	void Init(ComPtr<ID3D11Device>& device);
+	void Init(ComPtr<ID3D11Device>& device, const float scale, const bool isHittable);
 	void Render(ComPtr<ID3D11DeviceContext>& context);
+	void RenderNormal(ComPtr<ID3D11DeviceContext>& context);
 	void UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow);
 	void UpdateBuffer(ComPtr<ID3D11DeviceContext>& context);
 	DirectX::SimpleMath::Matrix GetWorldMatrix();
@@ -27,6 +29,7 @@ private:
 	std::string m_directory;
 	std::vector<Mesh> m_meshes;
 
-	ModelBuffer m_constBufferCPU;
 	ComPtr<ID3D11Buffer> m_constBufferGPU;
+public:
+	ModelBuffer m_constBufferCPU;
 };

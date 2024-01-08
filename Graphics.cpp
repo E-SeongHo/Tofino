@@ -43,10 +43,10 @@ bool Graphics::Init()
 
     model = new Model();
     model->LoadModel("D:/Workspace/3DModels/E-45-Aircraft/E 45 Aircraft_obj.obj");
-    model->Init(m_device);
+    model->Init(m_device, 3.0f, true);
 
     pickingEffect = new Sphere();
-    pickingEffect->Init(0.3f, false);
+    pickingEffect->Init(0.1f, false);
     pickingEffect->LoadDDSTexture(m_device, L"./Assets/Texture/Test/");
     pickingEffect->CreateBuffers(m_device);
 
@@ -57,11 +57,20 @@ bool Graphics::Init()
     envMap = new EnvMap();
     envMap->Init(m_device, L"./Assets/Cubemap/HDRI/PlanetaryEarth/");
     // envMap->m_mesh->CreateBuffers(); // Init()내부에서 실행
-    
+
+    Light light;
+    light.pos = Vector3(-0.3f, 0.2f, -2.0f);
+    light.strength = 2.0f;
+    light.direction = Vector3(0.1f, -0.2f, 1.0f);
+    light.coefficient = 2.2f;
+
     ShaderManager::GetInstance().InitShaders(m_device);
 
     m_globalConstBufferCPU.view = cam->GetViewMatrix().Transpose();
     m_globalConstBufferCPU.projection = cam->GetProjectionMatrix().Transpose();
+    m_globalConstBufferCPU.eye = cam->GetOrigin();
+    m_globalConstBufferCPU.light = light;
+
     Util::CreateConstantBuffer(m_device, m_globalConstBufferCPU, m_globalConstBufferGPU);
 
     return true;
@@ -243,16 +252,21 @@ void Graphics::Update(float dt)
     UpdateCameraPosition(dt);
     m_globalConstBufferCPU.view = cam->GetViewMatrix().Transpose();
     m_globalConstBufferCPU.projection = cam->GetProjectionMatrix().Transpose();
+
     Util::UpdateConstantBuffer(m_context, m_globalConstBufferCPU, m_globalConstBufferGPU);
 
     // Model 
     //cout << model->m_boundingSphere.Center.z << endl;
-    sphere->UpdateWorldMatrix(Matrix::CreateRotationY(1.0f * dt) * Matrix::CreateRotationX(1.0f * dt) * sphere->GetWorldMatrix());
+    /*sphere->UpdateWorldMatrix(Matrix::CreateRotationY(1.0f * dt) * Matrix::CreateRotationX(1.0f * dt) * sphere->GetWorldMatrix());
+    sphere->UpdateBuffer(m_context);*/
+    
     sphere->UpdateBuffer(m_context);
+    model->UpdateBuffer(m_context);
 }
 
 void Graphics::Render()
 {
+    //cout << cam->GetOrigin().x << " " << cam->GetOrigin().y << " " << cam->GetOrigin().z << endl;
     m_context->RSSetViewports(1, &m_screenViewport);
 
     const float clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -274,7 +288,8 @@ void Graphics::Render()
     m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     SetGlobalConstantBuffers();
-    //sphere->Render(m_context);
+    sphere->SetSRVs(m_context);
+    sphere->Render(m_context);
     model->Render(m_context);
     
     if (m_picking && m_leftClick)
@@ -332,7 +347,16 @@ void Graphics::Present()
 
 void Graphics::UpdateGUI()
 {
+    ImGui::SliderFloat3("light position", &m_globalConstBufferCPU.light.pos.x, -200.0f, 200.0f);
+    ImGui::SliderFloat("light strength", &m_globalConstBufferCPU.light.strength, 0.0f, 10.0f);
+    ImGui::SliderFloat3("light direction", &m_globalConstBufferCPU.light.direction.x, -10.0f, 10.0f);
+    ImGui::SliderFloat("light coefficient", &m_globalConstBufferCPU.light.coefficient, 0.0f, 10.0f);
 
+    ImGui::SliderFloat("model roughness", &model->m_constBufferCPU.material.roughness, 0.0f, 0.5f);
+    ImGui::SliderFloat("model metaillic", &model->m_constBufferCPU.material.metallic, 0.0f, 0.5f);
+
+    ImGui::SliderFloat("sphere roughness", &sphere->m_constBufferCPU.material.roughness, 0.0f, 0.5f);
+    ImGui::SliderFloat("sphere metaillic", &sphere->m_constBufferCPU.material.metallic, 0.0f, 0.5f);
 }
 
 
@@ -380,9 +404,9 @@ void Graphics::ProcessMouseMove(const int xPos, const int yPos)
                 Vector3 hitPoint = p0 + direction * distance;
                 Vector3 dv = hitPoint - prevHit;
 
-                sphere->UpdateWorldMatrix(sphere->GetWorldMatrix() * Matrix::CreateTranslation(dv));
-                sphere->UpdateBuffer(m_context);
-                sphere->m_boundingSphere.Center = sphere->m_boundingSphere.Center + dv;
+                model->UpdateWorldMatrix(model->GetWorldMatrix() * Matrix::CreateTranslation(dv));
+                model->UpdateBuffer(m_context);
+                model->m_boundingSphere.Center = model->m_boundingSphere.Center + dv;
 
                 pickingEffect->UpdateWorldMatrix(Matrix::CreateTranslation(hitPoint));
                 pickingEffect->UpdateBuffer(m_context);
@@ -406,7 +430,7 @@ void Graphics::ProcessMouseMove(const int xPos, const int yPos)
 
                 // TODO : For all models which inherit Hittable Class
                 float distance = 0.0f;
-                bool hit = ray.Intersects(sphere->m_boundingSphere, distance);
+                bool hit = ray.Intersects(model->m_boundingSphere, distance);
                 if (hit)
                 {
                     if (!m_picking) m_picking = true;
@@ -433,21 +457,22 @@ void Graphics::ProcessMouseWheel(const int wheel)
     if (m_leftClick && m_picking)
     {
         int movement = wheel / 120; 
-        Vector3 dv = sphere->m_boundingSphere.Center - cam->GetOrigin();
+        Vector3 dv = model
+            ->m_boundingSphere.Center - cam->GetOrigin();
         dv.Normalize();
         dv = dv * movement * speed;
 
         Matrix m = Matrix::CreateTranslation(dv);
-        sphere->UpdateWorldMatrix(sphere->GetWorldMatrix() * m);
-        sphere->UpdateBuffer(m_context);
-        sphere->m_boundingSphere.Center = sphere->m_boundingSphere.Center + dv;
+        model->UpdateWorldMatrix(model->GetWorldMatrix() * m);
+        model->UpdateBuffer(m_context);
+        model->m_boundingSphere.Center = model->m_boundingSphere.Center + dv;
 
         pickingEffect->UpdateWorldMatrix(pickingEffect->GetWorldMatrix() * m);
         pickingEffect->UpdateBuffer(m_context);
 
         Vector3 n = -cam->GetDirection();
         n.Normalize();
-        m_draggingPlane = Plane(sphere->m_boundingSphere.Center, n);
+        m_draggingPlane = Plane(model->m_boundingSphere.Center, n);
 
         prevHit = prevHit + dv;
     }
@@ -524,6 +549,7 @@ Graphics::~Graphics()
 {
     delete cam;
     delete sphere;
+    delete model;
     delete envMap;
     delete m_copySquare;
 }

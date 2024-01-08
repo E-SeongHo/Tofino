@@ -104,7 +104,6 @@ bool SystemBase::InitGUI()
 	ImGuiIO& io = ImGui::GetIO();
 	(void)io;
 	io.DisplaySize = ImVec2(float(m_width), float(m_height));
-	ImGui::StyleColorsLight();
 
 	// Setup Platform/Renderer backends
 	if (!m_renderer->SetupGUIBackEnd())
@@ -138,7 +137,7 @@ void SystemBase::Run()
 			ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
 				ImGui::GetIO().Framerate);
 
-			// UpdateGUI(); // 추가적으로 사용할 GUI
+			m_renderer->UpdateGUI(); // 추가적으로 사용할 GUI
 			ImGui::End();
 			ImGui::Render(); // 렌더링할 것들 기록 끝
 

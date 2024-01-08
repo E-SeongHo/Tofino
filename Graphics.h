@@ -12,11 +12,16 @@
 #include "Model.h"
 #include "Camera.h"
 #include "ShaderManager.h"
+#include "Light.h"
 
 struct GlobalBuffer
 {   // Make sure must be a column matrix
     DirectX::SimpleMath::Matrix view;
     DirectX::SimpleMath::Matrix projection;
+
+    DirectX::SimpleMath::Vector3 eye; // world
+    float padding1;
+    Light light; // 32bytes
 };
 
 using Microsoft::WRL::ComPtr;

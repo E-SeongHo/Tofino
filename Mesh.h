@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include "Material.h"
 #include "Util.h"
 
 struct Vertex
@@ -16,6 +16,7 @@ struct ModelBuffer // Must Store as a Column Matrix
 {
     DirectX::SimpleMath::Matrix world; // equal model matrix 
     DirectX::SimpleMath::Matrix worldIT;
+    Material material; // 32bytes
 };
 
 class Hittable

@@ -24,7 +24,7 @@ void Model::LoadModel(const std::string& filename)
 	LoadNode(scene->mRootNode, scene, tr);
 }
 
-void Model::Init(ComPtr<ID3D11Device>& device)
+void Model::Init(ComPtr<ID3D11Device>& device, const float scale, const bool isHittable)
 {	// Load Textures, Create Buffers
 
 	using namespace DirectX;
@@ -54,9 +54,9 @@ void Model::Init(ComPtr<ID3D11Device>& device)
 	{
 		for (auto& v : mesh.m_vertices) 
 		{
-			v.pos.x = (v.pos.x - cx) / dl;
-			v.pos.y = (v.pos.y - cy) / dl;
-			v.pos.z = (v.pos.z - cz) / dl;
+			v.pos.x = ((v.pos.x - cx) / dl) * scale;
+			v.pos.y = ((v.pos.y - cy) / dl) * scale;
+			v.pos.z = ((v.pos.z - cz) / dl) * scale;
 		}
 	}
 
@@ -78,6 +78,12 @@ void Model::Init(ComPtr<ID3D11Device>& device)
 		Util::CreateIndexBuffer(device, mesh.m_indices, mesh.m_indexBuffer);
 		mesh.m_constBufferGPU = m_constBufferGPU; // sharing resource
 	}
+
+	if (isHittable)
+	{
+		onActive = isHittable;
+		m_boundingSphere = BoundingSphere(Vector3(0.0f, 0.0f, 0.0f), 0.5f);
+	}
 }
 
 void Model::Render(ComPtr<ID3D11DeviceContext>& context)
@@ -86,6 +92,14 @@ void Model::Render(ComPtr<ID3D11DeviceContext>& context)
 	{
 		mesh.SetSRVs(context);
 		mesh.Render(context);
+	}
+}
+
+void Model::RenderNormal(ComPtr<ID3D11DeviceContext>& context)
+{
+	for (auto& mesh : m_meshes)
+	{
+		mesh.RenderNormal(context);
 	}
 }
 

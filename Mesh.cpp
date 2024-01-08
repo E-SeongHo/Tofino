@@ -21,8 +21,8 @@ void Mesh::UpdateBuffer(ComPtr<ID3D11DeviceContext>& context)
 
 void Mesh::Render(ComPtr<ID3D11DeviceContext>& context)
 {
-    //SetSRVs(context);
     context->VSSetConstantBuffers(0, 1, m_constBufferGPU.GetAddressOf());
+    context->PSSetConstantBuffers(0, 1, m_constBufferGPU.GetAddressOf());
 
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
