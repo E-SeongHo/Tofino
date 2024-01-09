@@ -38,18 +38,24 @@ bool Graphics::Init()
 
     sphere = new Sphere();
     sphere->Init(1.0f, true);
-    sphere->LoadDDSTexture(m_device, L"./Assets/Texture/Test/");
-    sphere->LoadTexture(m_device, "./Assets/Texture/wet-mossy-rocks-ue/wet-mossy-rocks_normal-dx.png", sphere->m_normalSRV, false);
+    
+    const string texDirectory = "./Assets/Texture/wet-mossy-rocks-ue/";
+    sphere->m_diffuseFilename = texDirectory + "wet-mossy-rocks_albedo.png";
+    sphere->m_normalFilename = texDirectory + "wet-mossy-rocks_normal-dx.png";
+    sphere->m_heightFilename = texDirectory + "wet-mossy-rocks_height.png";
+
+    sphere->LoadTextures(m_device);
     sphere->CreateBuffers(m_device);
 
     model = new Model();
-    //model->LoadModel("D:/Workspace/3DModels/armored-female-future-soldier/angel_armor.fbx");
     model->LoadModel("D:/Workspace/3DModels/E-45-Aircraft/E 45 Aircraft_obj.obj");
     model->m_meshes[0].m_diffuseFilename = model->m_directory + "E-45 _col.jpg";
-    model->m_meshes[0].m_diffuseFilename = model->m_directory + "E-45-nor1.jpg";
+    model->m_meshes[0].m_normalFilename = model->m_directory + "E-45-nor_1.jpg";
+    model->m_meshes[0].m_heightFilename = "";
 
     model->m_meshes[1].m_diffuseFilename = "";
-    model->m_meshes[1].m_diffuseFilename = model->m_directory + "E-45_glass_nor_.jpg";
+    model->m_meshes[1].m_normalFilename = model->m_directory + "E-45_glass_nor_.jpg";
+    model->m_meshes[1].m_heightFilename = "";
 
     //model->LoadModel("D:/Workspace/3DModels/stoneman/Stonefbx.fbx");
     model->Init(m_device, 3.0f, true);
@@ -287,6 +293,7 @@ void Graphics::Render()
     m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
 
     m_context->VSSetShader(ShaderManager::GetInstance().basicVS.Get(), 0, 0);
+    m_context->VSSetSamplers(0, 1, m_samplerState.GetAddressOf());
     m_context->PSSetShader(ShaderManager::GetInstance().basicPS.Get(), 0, 0);
     m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
     m_context->RSSetState(m_solidState.Get());
@@ -363,9 +370,12 @@ void Graphics::UpdateGUI()
 
     ImGui::SliderFloat("model roughness", &model->m_constBufferCPU.material.roughness, 0.0f, 0.5f);
     ImGui::SliderFloat("model metaillic", &model->m_constBufferCPU.material.metallic, 0.0f, 0.5f);
-
+    ImGui::CheckboxFlags("model has height map", &model->m_constBufferCPU.hasHeightMap, 1);
+    
     ImGui::SliderFloat("sphere roughness", &sphere->m_constBufferCPU.material.roughness, 0.0f, 0.5f);
     ImGui::SliderFloat("sphere metaillic", &sphere->m_constBufferCPU.material.metallic, 0.0f, 0.5f);
+    ImGui::CheckboxFlags("sphere has height map", &sphere->m_constBufferCPU.hasHeightMap, 1);
+
 }
 
 

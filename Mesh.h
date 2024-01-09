@@ -18,6 +18,10 @@ struct ModelBuffer // Must Store as a Column Matrix
     DirectX::SimpleMath::Matrix world; // equal model matrix 
     DirectX::SimpleMath::Matrix worldIT;
     Material material; // 32bytes
+    int hasAlbedoMap = 1;
+    int hasNormalMap = 1;
+    int hasHeightMap = 1;
+    int padding;
 };
 
 class Hittable
@@ -42,6 +46,7 @@ public:
 
     void LoadDDSTexture(ComPtr<ID3D11Device>& device, const std::wstring filepath);
     void LoadTexture(ComPtr<ID3D11Device>& device, const std::string filepath, ComPtr<ID3D11ShaderResourceView>& srv, const bool gammaDecode);
+    void LoadTextures(ComPtr<ID3D11Device>& device);
     void SetSRVs(ComPtr<ID3D11DeviceContext>& context);
 
 public:
@@ -59,6 +64,8 @@ public:
     // Textures
     std::string m_diffuseFilename;
     std::string m_normalFilename;
+    std::string m_heightFilename;
     ComPtr<ID3D11ShaderResourceView> m_diffuseSRV;
     ComPtr<ID3D11ShaderResourceView> m_normalSRV;
+    ComPtr<ID3D11ShaderResourceView> m_heightSRV;
 };

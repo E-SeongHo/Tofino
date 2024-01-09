@@ -1,11 +1,18 @@
 
 #include "Common.hlsli"
 
+Texture2D heightTexture : register(t0);
+SamplerState g_sampler : register(s0);
+
 cbuffer ModelConstBuffer : register(b0)
 {
 	matrix world;
 	matrix worldIT;
 	Material material;
+	int hasAlbedoMap; 
+	int hasNormalMap;
+	int hasHeightMap;
+	int padding;
 };
 
 struct PSInput
@@ -20,19 +27,31 @@ struct PSInput
 PSInput main( BasicVertexInput input )
 {
 	PSInput output;
-
-	float4 pos = float4(input.pos, 1.0f);
-	pos = mul(pos, world);
-	pos = mul(pos, view);
-	pos = mul(pos, projection);
-
+	
+	// normal
 	float4 Nmodel = float4(input.normal, 0.0f);
 	float3 Nworld = mul(Nmodel, worldIT).xyz;
 	Nworld = normalize(Nworld);
 
+	// tangent
 	float4 Tmodel = float4(input.tangent, 0.0f);
 	float3 Tworld = mul(Tmodel, world).xyz;
 	Tworld = normalize(Tworld);
+
+	// vertex position
+	float4 pos = float4(input.pos, 1.0f);
+	pos = mul(pos, world);
+
+	// height mapping (in world space)
+	if (hasHeightMap)
+	{
+		float height = heightTexture.SampleLevel(g_sampler, input.uv, 1).r;
+		height = 2.0f * height - 1.0f;
+		pos.xyz += height * Nworld * 0.1f;
+	}
+
+	pos = mul(pos, view);
+	pos = mul(pos, projection);
 
 	output.pos = pos;
 	output.color = input.color;

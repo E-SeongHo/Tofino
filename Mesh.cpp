@@ -83,9 +83,15 @@ void Mesh::LoadTexture(ComPtr<ID3D11Device>& device, const std::string filepath,
     TextureLoader::CreateTextureFromImage(device, filepath, srv, gammaDecode);
 }
 
-  
+void Mesh::LoadTextures(ComPtr<ID3D11Device>& device)
+{
+    TextureLoader::CreateTextureFromImage(device, m_diffuseFilename, m_diffuseSRV, true);
+    TextureLoader::CreateTextureFromImage(device, m_normalFilename, m_normalSRV, false);
+    TextureLoader::CreateTextureFromImage(device, m_heightFilename, m_heightSRV, false);
+}
 void Mesh::SetSRVs(ComPtr<ID3D11DeviceContext>& context)
 {
+    context->VSSetShaderResources(0, 1, m_heightSRV.GetAddressOf());
     ID3D11ShaderResourceView* textures[] = { m_diffuseSRV.Get(), m_normalSRV.Get() };
     context->PSSetShaderResources(0, 2, textures);
 }

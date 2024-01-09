@@ -10,6 +10,10 @@ cbuffer ModelConstBuffer : register(b0)
 	matrix world;
 	matrix worldIT;
 	Material material;
+	int hasAlbedoMap;
+	int hasNormalMap;
+	int hasHeightMap;
+	int padding;
 };
 
 struct PSInput
@@ -38,8 +42,7 @@ float4 main(PSInput input) : SV_TARGET
 {
 	float4 albedo = diffuseTexture.Sample(g_sampler, input.uv);
 
-	//float3 N = input.normal; 
-	float3 N = TBNTransform(input);
+	float3 N = hasNormalMap ? TBNTransform(input) : input.normal;
 	float3 L = normalize(-light.direction); // directional light
 	float3 V = normalize(eye - input.pos); // vector to eye from pixel
 	

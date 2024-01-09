@@ -48,7 +48,7 @@ private:
 
     ComPtr<ID3D11ShaderResourceView> m_hdrSRV;
     ComPtr<ID3D11ShaderResourceView> m_hdrResolvedSRV;
-
+    
     ComPtr<ID3D11Texture2D> m_depthStencilBuffer;
     ComPtr<ID3D11DepthStencilView> m_depthStencilView;
     ComPtr<ID3D11DepthStencilState> m_depthStencilState;

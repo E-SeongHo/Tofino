@@ -23,6 +23,8 @@ void Model::LoadModel(const std::string& filename)
     
     Matrix tr; // Initial transformation
 	LoadNode(scene->mRootNode, scene, tr);
+
+	cout << "meshes : " << m_meshes.size() << endl;
 }
 
 void Model::Init(ComPtr<ID3D11Device>& device, const float scale, const bool isHittable)
@@ -67,12 +69,8 @@ void Model::Init(ComPtr<ID3D11Device>& device, const float scale, const bool isH
 
 	for (auto& mesh : m_meshes)
 	{
-		// diffuse texture
-		mesh.m_diffuseFilename = m_directory + "E-45 _col.jpg";
-		TextureLoader::CreateTextureFromImage(device, mesh.m_diffuseFilename, mesh.m_diffuseSRV, true);
-		// normal texture
-		mesh.m_normalFilename = m_directory + "E-45-nor_1.jpg";
-		TextureLoader::CreateTextureFromImage(device, mesh.m_normalFilename, mesh.m_normalSRV, false);
+		// Textures
+		mesh.LoadTextures(device);
 
 		// Create Buffers
 		mesh.m_indexCount = (UINT)mesh.m_indices.size();
@@ -225,6 +223,22 @@ void Model::LoadMesh(aiMesh* mesh, const aiScene* scene)
 		else
 		{
 			cout << "No normal texture: " << m_directory << endl;
+		}
+
+		if (material->GetTextureCount(aiTextureType_HEIGHT) > 0)
+		{
+			aiString path;
+			material->GetTexture(aiTextureType_HEIGHT, 0, &path);
+
+			int idx = string(path.data).rfind("\\");
+			string filename = string(path.data).substr(idx + 1);
+
+			newMesh.m_heightFilename = m_directory + filename;
+			cout << "Found height texture: " << filename << endl;
+		}
+		else
+		{
+			cout << "No height texture: " << m_directory << endl;
 		}
 
 	}
