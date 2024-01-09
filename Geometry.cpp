@@ -218,6 +218,7 @@ void Sphere::Init(const float scale, bool isHittable)
     vector<Vector3> colors;
     vector<Vector3> normals;
     vector<Vector2> texcoords;
+    vector<Vector3> tangents;
 
     const float radius = 1.0f * scale;
     const int sectorCount = 20;
@@ -238,13 +239,22 @@ void Sphere::Init(const float scale, bool isHittable)
             float sectorAngle = (float)j * sectorStep;
             Vector3 currentPoint = Vector3::Transform(stackStart, Matrix::CreateRotationY(sectorAngle));
             positions.push_back(currentPoint);
-            
+
             currentPoint.Normalize();
             normals.push_back(currentPoint);
 
             float u = (float)j / sectorCount;
             float v = 1.0f - ((float)i / stackCount);
             texcoords.push_back(Vector2(u, v));
+            
+            // Compute tangent of this mesh.
+            // Partial derivative of P with respect to theta
+            Vector3 T;
+            T.x = -radius * sinf(stackAngle) * sinf(sectorAngle);
+            T.y = 0.0f;
+            T.z = radius * sinf(stackAngle) * cosf(sectorAngle);
+            T.Normalize();
+            tangents.push_back(T);
         }
     }
 
@@ -255,6 +265,7 @@ void Sphere::Init(const float scale, bool isHittable)
         v.color = Vector3(0.5f, 0.5f, 0.5f);
         v.normal = normals[i];
         v.uv = texcoords[i];
+        v.tangent = tangents[i];
 
         m_vertices.push_back(v);
     }

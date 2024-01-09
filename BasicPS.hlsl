@@ -2,6 +2,7 @@
 #include "Common.hlsli"
 
 Texture2D diffuseTexture : register(t0); 
+Texture2D normalTexture : register(t1);
 SamplerState g_sampler : register(s0);
 
 cbuffer ModelConstBuffer : register(b0)
@@ -17,13 +18,28 @@ struct PSInput
 	float3 color : COLOR;
 	float3 normal : NORMAL; // World Space
 	float2 uv : TEXCOORD;
+	float3 tangent : TANGENT; // World Space
 };
 
+float3 TBNTransform(PSInput input)
+{
+	float3 N = input.normal;
+	float3 T = normalize(input.tangent - dot(input.tangent, N) * N); // orthogonalization
+	float3 B = cross(N, T);
+
+	float3x3 TBN = float3x3(T, B, N);
+
+	float3 normal = normalTexture.Sample(g_sampler, input.uv).rgb;
+	normal = 2.0 * normal - 1.0;
+
+	return normalize(mul(normal, TBN));
+}
 float4 main(PSInput input) : SV_TARGET
 {
 	float4 albedo = diffuseTexture.Sample(g_sampler, input.uv);
 
-	float3 N = input.normal; 
+	//float3 N = input.normal; 
+	float3 N = TBNTransform(input);
 	float3 L = normalize(-light.direction); // directional light
 	float3 V = normalize(eye - input.pos); // vector to eye from pixel
 	

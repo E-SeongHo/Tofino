@@ -31,4 +31,5 @@ struct BasicVertexInput
 	float3 color : COLOR; 
 	float3 normal : NORMAL; // Model Space
 	float2 uv : TEXCOORD;
+	float3 tangent : TANGENT; // Model Space
 };

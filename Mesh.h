@@ -9,6 +9,7 @@ struct Vertex
     DirectX::SimpleMath::Vector3 color;
     DirectX::SimpleMath::Vector3 normal;
     DirectX::SimpleMath::Vector2 uv;
+    DirectX::SimpleMath::Vector3 tangent;
 };
 
 // 16Byte align
@@ -40,7 +41,7 @@ public:
     void UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow);
 
     void LoadDDSTexture(ComPtr<ID3D11Device>& device, const std::wstring filepath);
-    //void LoadTexture(ComPtr<ID3D11Device>& device, const std::string filepath, ComPtr<ID3D11ShaderResourceView>& srv, const bool gammaDecode);
+    void LoadTexture(ComPtr<ID3D11Device>& device, const std::string filepath, ComPtr<ID3D11ShaderResourceView>& srv, const bool gammaDecode);
     void SetSRVs(ComPtr<ID3D11DeviceContext>& context);
 
 public:
@@ -57,5 +58,7 @@ public:
 
     // Textures
     std::string m_diffuseFilename;
+    std::string m_normalFilename;
     ComPtr<ID3D11ShaderResourceView> m_diffuseSRV;
+    ComPtr<ID3D11ShaderResourceView> m_normalSRV;
 };

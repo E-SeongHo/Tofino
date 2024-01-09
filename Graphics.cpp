@@ -39,10 +39,19 @@ bool Graphics::Init()
     sphere = new Sphere();
     sphere->Init(1.0f, true);
     sphere->LoadDDSTexture(m_device, L"./Assets/Texture/Test/");
+    sphere->LoadTexture(m_device, "./Assets/Texture/wet-mossy-rocks-ue/wet-mossy-rocks_normal-dx.png", sphere->m_normalSRV, false);
     sphere->CreateBuffers(m_device);
 
     model = new Model();
+    //model->LoadModel("D:/Workspace/3DModels/armored-female-future-soldier/angel_armor.fbx");
     model->LoadModel("D:/Workspace/3DModels/E-45-Aircraft/E 45 Aircraft_obj.obj");
+    model->m_meshes[0].m_diffuseFilename = model->m_directory + "E-45 _col.jpg";
+    model->m_meshes[0].m_diffuseFilename = model->m_directory + "E-45-nor1.jpg";
+
+    model->m_meshes[1].m_diffuseFilename = "";
+    model->m_meshes[1].m_diffuseFilename = model->m_directory + "E-45_glass_nor_.jpg";
+
+    //model->LoadModel("D:/Workspace/3DModels/stoneman/Stonefbx.fbx");
     model->Init(m_device, 3.0f, true);
 
     pickingEffect = new Sphere();

@@ -14,6 +14,7 @@ struct PSInput
 	float3 color : COLOR;
 	float3 normal : NORMAL; // World Space
 	float2 uv   : TEXCOORD;
+	float3 tangent : TANGENT; // World Space
 };
 
 PSInput main( BasicVertexInput input )
@@ -29,10 +30,15 @@ PSInput main( BasicVertexInput input )
 	float3 Nworld = mul(Nmodel, worldIT).xyz;
 	Nworld = normalize(Nworld);
 
+	float4 Tmodel = float4(input.tangent, 0.0f);
+	float3 Tworld = mul(Tmodel, world).xyz;
+	Tworld = normalize(Tworld);
+
 	output.pos = pos;
 	output.color = input.color;
 	output.normal = Nworld;
 	output.uv = input.uv;
+	output.tangent = Tworld;
 
 	return output;
 }

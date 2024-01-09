@@ -26,10 +26,11 @@ private:
 	//void LoadMaterials(const aiScene* scene); // texture가 많아지면 optimize : preload for duplicated textures
 
 private:
-	std::string m_directory;
-	std::vector<Mesh> m_meshes;
-
 	ComPtr<ID3D11Buffer> m_constBufferGPU;
+
 public:
 	ModelBuffer m_constBufferCPU;
+	
+	std::string m_directory;
+	std::vector<Mesh> m_meshes;
 };

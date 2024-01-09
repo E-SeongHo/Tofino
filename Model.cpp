@@ -1,5 +1,6 @@
 #include "Model.h"
 #include "TextureLoader.h"
+#include <DirectXMesh.h>
 
 using DirectX::SimpleMath::Matrix;
 using DirectX::SimpleMath::Vector3;
@@ -67,8 +68,12 @@ void Model::Init(ComPtr<ID3D11Device>& device, const float scale, const bool isH
 	for (auto& mesh : m_meshes)
 	{
 		// diffuse texture
+		mesh.m_diffuseFilename = m_directory + "E-45 _col.jpg";
 		TextureLoader::CreateTextureFromImage(device, mesh.m_diffuseFilename, mesh.m_diffuseSRV, true);
-		
+		// normal texture
+		mesh.m_normalFilename = m_directory + "E-45-nor_1.jpg";
+		TextureLoader::CreateTextureFromImage(device, mesh.m_normalFilename, mesh.m_normalSRV, false);
+
 		// Create Buffers
 		mesh.m_indexCount = (UINT)mesh.m_indices.size();
 		mesh.m_constBufferCPU.world = Matrix();
@@ -164,7 +169,7 @@ void Model::LoadMesh(aiMesh* mesh, const aiScene* scene)
 		vertex.normal.z = mesh->mNormals[i].z;
 		vertex.normal.Normalize();
 
-		if (mesh->mTextureCoords[0])
+		if (mesh->mTextureCoords[0]) // has texcoords
 		{
 			vertex.uv.x = mesh->mTextureCoords[0][i].x;
 			vertex.uv.y = mesh->mTextureCoords[0][i].y;
@@ -190,7 +195,7 @@ void Model::LoadMesh(aiMesh* mesh, const aiScene* scene)
 	{
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
-		if (material->GetTextureCount(aiTextureType_DIFFUSE)) 
+		if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0) 
 		{
 			aiString path;
 			material->GetTexture(aiTextureType_DIFFUSE, 0, &path);
@@ -199,11 +204,56 @@ void Model::LoadMesh(aiMesh* mesh, const aiScene* scene)
 			string filename = string(path.data).substr(idx + 1);
 
 			newMesh.m_diffuseFilename = m_directory + filename;
+			cout << "Found diffuse texture: " << filename << endl;
 		}
 		else
 		{
-			cout << "No texture: " << m_directory << endl;
+			cout << "No diffuse texture: " << m_directory << endl;
 		}
+
+		if (material->GetTextureCount(aiTextureType_NORMALS) > 0)
+		{
+			aiString path;
+			material->GetTexture(aiTextureType_NORMALS, 0, &path);
+
+			int idx = string(path.data).rfind("\\");
+			string filename = string(path.data).substr(idx + 1);
+
+			newMesh.m_normalFilename = m_directory + filename;
+			cout << "Found normal texture: " << filename << endl;
+		}
+		else
+		{
+			cout << "No normal texture: " << m_directory << endl;
+		}
+
+	}
+
+	// Compute Tangent Frame
+	vector<DirectX::XMFLOAT3> positions(newMesh.m_vertices.size());
+	vector<DirectX::XMFLOAT3> normals(newMesh.m_vertices.size());
+	vector<DirectX::XMFLOAT2> texcoords(newMesh.m_vertices.size());
+	vector<DirectX::XMFLOAT4> tangents(newMesh.m_vertices.size());
+
+	for (size_t i = 0; i < newMesh.m_vertices.size(); i++)
+	{
+		Vertex& vertex = newMesh.m_vertices[i];
+		positions[i] = vertex.pos;
+		normals[i] = vertex.normal;
+		texcoords[i] = vertex.uv;
+	}
+
+	DirectX::ComputeTangentFrame(newMesh.m_indices.data(), newMesh.m_indices.size() / 3, 
+		positions.data(), normals.data(), texcoords.data(), newMesh.m_vertices.size(), tangents.data());
+
+	for (size_t i = 0; i < newMesh.m_vertices.size(); i++)
+	{
+		//cout << "check tangent w : " << tangents[i].w << endl;
+		newMesh.m_vertices[i].tangent.x = tangents[i].x;
+		newMesh.m_vertices[i].tangent.y = tangents[i].y;
+		newMesh.m_vertices[i].tangent.z = tangents[i].z;
+		/*cout << newMesh.m_vertices[i].tangent.x << " " << newMesh.m_vertices[i].tangent.y << 
+			" " << newMesh.m_vertices[i].tangent.z << endl;*/
 	}
 
 	m_meshes.push_back(newMesh);

@@ -4,8 +4,8 @@
 
 struct Material
 {
-	DirectX::SimpleMath::Vector3 albedo;
-	float roughness;
-	float metallic;
+	DirectX::SimpleMath::Vector3 albedo = DirectX::SimpleMath::Vector3(1.0f, 1.0f, 1.0f);
+	float roughness = 0.1f;
+	float metallic = 0.1f;
 	float padding[3];
 };
