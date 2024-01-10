@@ -17,7 +17,16 @@ struct ModelBuffer // Must Store as a Column Matrix
 {
     DirectX::SimpleMath::Matrix world; // equal model matrix 
     DirectX::SimpleMath::Matrix worldIT;
-    Material material; // 32bytes
+    Material material; // 32Bytes, It's better having material each mesh for lighting, but art it later
+    int activeAlbedoMap = 1;
+    int activeNormalMap = 1;
+    int activeHeightMap = 1;
+    int padding;
+};
+
+// 16Byte align
+struct TextureStatus
+{
     int hasAlbedoMap = 1;
     int hasNormalMap = 1;
     int hasHeightMap = 1;
@@ -52,10 +61,12 @@ public:
 public:
     ComPtr<ID3D11Buffer> m_vertexBuffer;
     ComPtr<ID3D11Buffer> m_indexBuffer;
-    ComPtr<ID3D11Buffer> m_constBufferGPU;
+    ComPtr<ID3D11Buffer> m_modelBufferGPU;
+    ComPtr<ID3D11Buffer> m_meshMapInfoBufferGPU;
     UINT m_indexCount = 0;
 
-    ModelBuffer m_constBufferCPU;
+    ModelBuffer m_modelBufferCPU; // share Model's buffer
+    TextureStatus m_meshMapInfoBufferCPU; // each mesh has a different buffer 
 
     // Meshes
     std::vector<Vertex> m_vertices;

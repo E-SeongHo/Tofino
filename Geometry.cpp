@@ -25,7 +25,7 @@ void Triangle::Init(const float scale, bool isHittable)
     m_indices = { 0, 1, 2 };
     m_indexCount = (UINT)m_indices.size();
 
-    m_constBufferCPU.world = Matrix();
+    m_modelBufferCPU.world = Matrix();
 }
 
 void Square::Init(const float scale, bool isHittable)
@@ -67,7 +67,7 @@ void Square::Init(const float scale, bool isHittable)
 
     m_indexCount = (UINT)m_indices.size();
 
-    m_constBufferCPU.world = Matrix();
+    m_modelBufferCPU.world = Matrix();
 }
 
 void Cube::Init(const float scale, bool isHittable)
@@ -206,7 +206,7 @@ void Cube::Init(const float scale, bool isHittable)
     };
     m_indexCount = (UINT)m_indices.size();
 
-    m_constBufferCPU.world = Matrix();
+    m_modelBufferCPU.world = Matrix();
 }
 
 void Sphere::Init(const float scale, bool isHittable)
@@ -287,7 +287,7 @@ void Sphere::Init(const float scale, bool isHittable)
     }
 
     m_indexCount = (UINT)m_indices.size();
-    m_constBufferCPU.world = Matrix();
+    m_modelBufferCPU.world = Matrix();
 
     if (isHittable)
     {

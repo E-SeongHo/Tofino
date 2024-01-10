@@ -38,7 +38,7 @@ void TextureLoader::CreateDDSTexture(ComPtr<ID3D11Device>& device, const std::ws
         shaderResourceView.GetAddressOf(), nullptr));
 }
 
-void TextureLoader::CreateTextureFromImage(ComPtr<ID3D11Device>& device, const std::string filename, ComPtr<ID3D11ShaderResourceView>& shaderResourceView, const bool gammaDecode)
+bool TextureLoader::CreateTextureFromImage(ComPtr<ID3D11Device>& device, const std::string filename, ComPtr<ID3D11ShaderResourceView>& shaderResourceView, const bool gammaDecode)
 {
     int width = 0, height = 0;
     std::vector<uint8_t> image;
@@ -59,8 +59,12 @@ void TextureLoader::CreateTextureFromImage(ComPtr<ID3D11Device>& device, const s
 
     // assert(channels == 4);
 
-    cout << filename << " " << width << " " << height << " " << channels
-        << endl;
+    cout << filename << " " << width << " " << height << " " << channels << endl;
+    if (filename.empty())
+    {
+        cout << "Empty file name: " << endl;
+        return false;
+    }
 
     // make 4 channels and copy
     image.resize(width * height * 4);
@@ -99,6 +103,7 @@ void TextureLoader::CreateTextureFromImage(ComPtr<ID3D11Device>& device, const s
     }
     else {
         std::cout << "Cannot read " << channels << " channels" << endl;
+        return false;
     }
 
     D3D11_TEXTURE2D_DESC txtDesc = {};
@@ -120,5 +125,7 @@ void TextureLoader::CreateTextureFromImage(ComPtr<ID3D11Device>& device, const s
     device->CreateTexture2D(&txtDesc, &InitData, texture.GetAddressOf());
     device->CreateShaderResourceView(texture.Get(), nullptr,
         shaderResourceView.GetAddressOf());
+    
+    return true;
 }
 

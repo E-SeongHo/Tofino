@@ -15,7 +15,7 @@ struct Material
 	float3 padding;
 };
 
-cbuffer GlobalConstants : register(b1)
+cbuffer GlobalConstants : register(b10)
 {
     matrix view;
     matrix projection;

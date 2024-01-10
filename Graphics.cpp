@@ -48,14 +48,17 @@ bool Graphics::Init()
     sphere->CreateBuffers(m_device);
 
     model = new Model();
+    /*model->LoadModel("D:/Workspace/3DModels/sci-fi-space-station/SpaceStation.fbx");
+    model->m_meshes[0].m_diffuseFilename = model->m_directory + "SpaceStationParts2_BaseColor.png";*/
+
     model->LoadModel("D:/Workspace/3DModels/E-45-Aircraft/E 45 Aircraft_obj.obj");
     model->m_meshes[0].m_diffuseFilename = model->m_directory + "E-45 _col.jpg";
     model->m_meshes[0].m_normalFilename = model->m_directory + "E-45-nor_1.jpg";
-    model->m_meshes[0].m_heightFilename = "";
+    model->m_meshes[0].m_heightFilename = model->m_directory + "E-45-nor_1.jpg";
 
     model->m_meshes[1].m_diffuseFilename = "";
     model->m_meshes[1].m_normalFilename = model->m_directory + "E-45_glass_nor_.jpg";
-    model->m_meshes[1].m_heightFilename = "";
+    model->m_meshes[1].m_heightFilename = model->m_directory + "E-45_glass_nor_.jpg";
 
     //model->LoadModel("D:/Workspace/3DModels/stoneman/Stonefbx.fbx");
     model->Init(m_device, 3.0f, true);
@@ -255,10 +258,10 @@ bool Graphics::SetupGUIBackEnd()
 
 void Graphics::SetGlobalConstantBuffers()
 {
-    // register b1 will receive it
-    m_context->VSSetConstantBuffers(1, 1, m_globalConstBufferGPU.GetAddressOf());
-    m_context->GSSetConstantBuffers(1, 1, m_globalConstBufferGPU.GetAddressOf());
-    m_context->PSSetConstantBuffers(1, 1, m_globalConstBufferGPU.GetAddressOf());
+    // register b10 will receive it
+    m_context->VSSetConstantBuffers(10, 1, m_globalConstBufferGPU.GetAddressOf());
+    m_context->GSSetConstantBuffers(10, 1, m_globalConstBufferGPU.GetAddressOf());
+    m_context->PSSetConstantBuffers(10, 1, m_globalConstBufferGPU.GetAddressOf());
 }
 
 void Graphics::Update(float dt)
@@ -296,8 +299,15 @@ void Graphics::Render()
     m_context->VSSetSamplers(0, 1, m_samplerState.GetAddressOf());
     m_context->PSSetShader(ShaderManager::GetInstance().basicPS.Get(), 0, 0);
     m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
-    m_context->RSSetState(m_solidState.Get());
-    //m_context->RSSetState(m_wireState.Get());
+    
+    if (m_wireRendering)
+    {
+        m_context->RSSetState(m_solidState.Get());
+    }
+    else
+    {
+        m_context->RSSetState(m_wireState.Get());
+    }
 
     // Set Vertex & Index Buffer
     m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
@@ -363,18 +373,22 @@ void Graphics::Present()
 
 void Graphics::UpdateGUI()
 {
+    ImGui::Checkbox("wire rendering", &m_wireRendering);
     ImGui::SliderFloat3("light position", &m_globalConstBufferCPU.light.pos.x, -200.0f, 200.0f);
     ImGui::SliderFloat("light strength", &m_globalConstBufferCPU.light.strength, 0.0f, 10.0f);
     ImGui::SliderFloat3("light direction", &m_globalConstBufferCPU.light.direction.x, -10.0f, 10.0f);
     ImGui::SliderFloat("light coefficient", &m_globalConstBufferCPU.light.coefficient, 0.0f, 10.0f);
 
-    ImGui::SliderFloat("model roughness", &model->m_constBufferCPU.material.roughness, 0.0f, 0.5f);
-    ImGui::SliderFloat("model metaillic", &model->m_constBufferCPU.material.metallic, 0.0f, 0.5f);
-    ImGui::CheckboxFlags("model has height map", &model->m_constBufferCPU.hasHeightMap, 1);
-    
-    ImGui::SliderFloat("sphere roughness", &sphere->m_constBufferCPU.material.roughness, 0.0f, 0.5f);
-    ImGui::SliderFloat("sphere metaillic", &sphere->m_constBufferCPU.material.metallic, 0.0f, 0.5f);
-    ImGui::CheckboxFlags("sphere has height map", &sphere->m_constBufferCPU.hasHeightMap, 1);
+    ImGui::SliderFloat("model roughness", &model->m_modelBufferCPU.material.roughness, 0.0f, 0.5f);
+    ImGui::SliderFloat("model metaillic", &model->m_modelBufferCPU.material.metallic, 0.0f, 0.5f);
+    ImGui::CheckboxFlags("model turn on height map", &model->m_modelBufferCPU.activeHeightMap, 1);
+    ImGui::CheckboxFlags("model turn on normal map", &model->m_modelBufferCPU.activeNormalMap, 1);
+
+
+    ImGui::SliderFloat("sphere roughness", &sphere->m_modelBufferCPU.material.roughness, 0.0f, 0.5f);
+    ImGui::SliderFloat("sphere metaillic", &sphere->m_modelBufferCPU.material.metallic, 0.0f, 0.5f);
+    ImGui::CheckboxFlags("sphere turn on height map", &sphere->m_modelBufferCPU.activeHeightMap, 1);
+    ImGui::CheckboxFlags("sphere turn on normal map", &sphere->m_modelBufferCPU.activeNormalMap, 1);
 
 }
 

@@ -9,11 +9,19 @@ cbuffer ModelConstBuffer : register(b0)
 	matrix world;
 	matrix worldIT;
 	Material material;
-	int hasAlbedoMap; 
-	int hasNormalMap;
-	int hasHeightMap;
+	int activeAlbedoMap;
+	int activeNormalMap;
+	int activeHeightMap;
 	int padding;
 };
+
+cbuffer MappingInfoBuffer : register(b1)
+{
+	int hasAlbedoMap;
+	int hasNormalMap;
+	int hasHeightMap;
+	int padding2;
+}
 
 struct PSInput
 {
@@ -43,11 +51,12 @@ PSInput main( BasicVertexInput input )
 	pos = mul(pos, world);
 
 	// height mapping (in world space)
-	if (hasHeightMap)
+	int heightMapping = hasHeightMap && activeHeightMap ? 1 : 0;
+	if (heightMapping)
 	{
 		float height = heightTexture.SampleLevel(g_sampler, input.uv, 1).r;
 		height = 2.0f * height - 1.0f;
-		pos.xyz += height * Nworld * 0.1f;
+		pos.xyz += height * Nworld * 0.05f;
 	}
 
 	pos = mul(pos, view);

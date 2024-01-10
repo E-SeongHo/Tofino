@@ -70,6 +70,8 @@ private:
     ComPtr<ID3D11RasterizerState> m_toneState;
 
     bool m_fpvMode = false;
+    bool m_wireRendering = false;
+
 public:
     Graphics(HWND hWnd, const int screenWidth, const int screenHeight);
     ~Graphics();

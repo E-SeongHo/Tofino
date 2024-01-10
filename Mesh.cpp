@@ -11,18 +11,21 @@ void Mesh::CreateBuffers(ComPtr<ID3D11Device>& device)
 {
     Util::CreateVertexBuffer(device, m_vertices, m_vertexBuffer);
     Util::CreateIndexBuffer(device, m_indices, m_indexBuffer);
-    Util::CreateConstantBuffer(device, m_constBufferCPU, m_constBufferGPU);
+    Util::CreateConstantBuffer(device, m_modelBufferCPU, m_modelBufferGPU);
+    Util::CreateConstantBuffer(device, m_meshMapInfoBufferCPU, m_meshMapInfoBufferGPU);
 }
 
 void Mesh::UpdateBuffer(ComPtr<ID3D11DeviceContext>& context)
 {
-    Util::UpdateConstantBuffer(context, m_constBufferCPU, m_constBufferGPU);
+    Util::UpdateConstantBuffer(context, m_modelBufferCPU, m_modelBufferGPU);
+    Util::UpdateConstantBuffer(context, m_meshMapInfoBufferCPU, m_meshMapInfoBufferGPU);
 }
 
 void Mesh::Render(ComPtr<ID3D11DeviceContext>& context)
 {
-    context->VSSetConstantBuffers(0, 1, m_constBufferGPU.GetAddressOf());
-    context->PSSetConstantBuffers(0, 1, m_constBufferGPU.GetAddressOf());
+    ID3D11Buffer* buffers[] = { m_modelBufferGPU.Get(), m_meshMapInfoBufferGPU.Get() };
+    context->VSSetConstantBuffers(0, 2, buffers);
+    context->PSSetConstantBuffers(0, 2, buffers);
 
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
@@ -33,7 +36,7 @@ void Mesh::Render(ComPtr<ID3D11DeviceContext>& context)
 
 void Mesh::RenderNormal(ComPtr<ID3D11DeviceContext>& context)
 {
-    context->VSSetConstantBuffers(0, 1, m_constBufferGPU.GetAddressOf());
+    context->VSSetConstantBuffers(0, 1, m_modelBufferGPU.GetAddressOf());
 
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
@@ -56,18 +59,18 @@ void Mesh::CopySquareRenderSetup(ComPtr<ID3D11DeviceContext>& context)
 
 DirectX::SimpleMath::Matrix Mesh::GetWorldMatrix()
 {
-    return m_constBufferCPU.world.Transpose();
+    return m_modelBufferCPU.world.Transpose();
 }
 
 
 void Mesh::UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow)
 {
     Matrix worldColumn = worldRow.Transpose();
-    m_constBufferCPU.world = worldColumn;
+    m_modelBufferCPU.world = worldColumn;
 
-    m_constBufferCPU.worldIT = worldColumn;
-    m_constBufferCPU.worldIT.Translation(Vector3(0.0f));
-    m_constBufferCPU.worldIT.Invert().Transpose();
+    m_modelBufferCPU.worldIT = worldColumn;
+    m_modelBufferCPU.worldIT.Translation(Vector3(0.0f));
+    m_modelBufferCPU.worldIT.Invert().Transpose();
 }
 
 void Mesh::LoadDDSTexture(ComPtr<ID3D11Device>& device, const wstring filepath)
@@ -85,10 +88,35 @@ void Mesh::LoadTexture(ComPtr<ID3D11Device>& device, const std::string filepath,
 
 void Mesh::LoadTextures(ComPtr<ID3D11Device>& device)
 {
-    TextureLoader::CreateTextureFromImage(device, m_diffuseFilename, m_diffuseSRV, true);
-    TextureLoader::CreateTextureFromImage(device, m_normalFilename, m_normalSRV, false);
-    TextureLoader::CreateTextureFromImage(device, m_heightFilename, m_heightSRV, false);
+    if (m_meshMapInfoBufferCPU.hasAlbedoMap)
+    {
+        cout << "Loading diffuse map...: ";
+        TextureLoader::CreateTextureFromImage(device, m_diffuseFilename, m_diffuseSRV, true);
+    }
+    else
+    {
+        cout << "No diffuse map" << endl;
+    }
+    if (m_meshMapInfoBufferCPU.hasNormalMap)
+    {
+        cout << "Loading normal map...: ";
+        TextureLoader::CreateTextureFromImage(device, m_normalFilename, m_normalSRV, false);
+    }
+    else
+    {
+        cout << "No normal map" << endl;
+    }
+    if (m_meshMapInfoBufferCPU.hasHeightMap)
+    {
+        cout << "Loading height map...: ";
+        TextureLoader::CreateTextureFromImage(device, m_heightFilename, m_heightSRV, false);
+    }
+    else
+    {
+        cout << "No height map" << endl;
+    }
 }
+
 void Mesh::SetSRVs(ComPtr<ID3D11DeviceContext>& context)
 {
     context->VSSetShaderResources(0, 1, m_heightSRV.GetAddressOf());

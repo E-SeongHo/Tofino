@@ -64,22 +64,27 @@ void Model::Init(ComPtr<ID3D11Device>& device, const float scale, const bool isH
 	}
 
 	// for just make one shared constant buffer instead of same different constant buffers for every mesh
-	m_constBufferCPU.world = Matrix();
-	Util::CreateConstantBuffer(device, m_constBufferCPU, m_constBufferGPU);
+	m_modelBufferCPU.world = Matrix();
+	Util::CreateConstantBuffer(device, m_modelBufferCPU, m_modelBufferGPU);
 
 	for (auto& mesh : m_meshes)
 	{
 		// Textures
+		mesh.m_meshMapInfoBufferCPU.hasAlbedoMap = !mesh.m_diffuseFilename.empty();
+		mesh.m_meshMapInfoBufferCPU.hasNormalMap = !mesh.m_normalFilename.empty();
+		mesh.m_meshMapInfoBufferCPU.hasHeightMap = !mesh.m_heightFilename.empty();
+
 		mesh.LoadTextures(device);
 
 		// Create Buffers
 		mesh.m_indexCount = (UINT)mesh.m_indices.size();
-		mesh.m_constBufferCPU.world = Matrix();
+		mesh.m_modelBufferCPU.world = Matrix();
 		
 		// mesh.CreateBuffers(device);
 		Util::CreateVertexBuffer(device, mesh.m_vertices, mesh.m_vertexBuffer);
 		Util::CreateIndexBuffer(device, mesh.m_indices, mesh.m_indexBuffer);
-		mesh.m_constBufferGPU = m_constBufferGPU; // sharing resource
+		mesh.m_modelBufferGPU = m_modelBufferGPU; // sharing resource
+		Util::CreateConstantBuffer(device, mesh.m_meshMapInfoBufferCPU, mesh.m_meshMapInfoBufferGPU);
 	}
 
 	if (isHittable)
@@ -108,21 +113,21 @@ void Model::RenderNormal(ComPtr<ID3D11DeviceContext>& context)
 
 DirectX::SimpleMath::Matrix Model::GetWorldMatrix()
 {
-	return m_constBufferCPU.world.Transpose();
+	return m_modelBufferCPU.world.Transpose();
 }
 
 void Model::UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow)
 {
 	Matrix worldColumn = worldRow.Transpose();
-	m_constBufferCPU.world = worldColumn;
-	m_constBufferCPU.worldIT = worldColumn;
-	m_constBufferCPU.worldIT.Translation(Vector3(0.0f));
-	m_constBufferCPU.worldIT.Invert().Transpose();
+	m_modelBufferCPU.world = worldColumn;
+	m_modelBufferCPU.worldIT = worldColumn;
+	m_modelBufferCPU.worldIT.Translation(Vector3(0.0f));
+	m_modelBufferCPU.worldIT.Invert().Transpose();
 }
 
 void Model::UpdateBuffer(ComPtr<ID3D11DeviceContext>& context)
 {
-	Util::UpdateConstantBuffer(context, m_constBufferCPU, m_constBufferGPU);
+	Util::UpdateConstantBuffer(context, m_modelBufferCPU, m_modelBufferGPU);
 }
 
 void Model::LoadNode(aiNode* node, const aiScene* scene, DirectX::SimpleMath::Matrix tr)
