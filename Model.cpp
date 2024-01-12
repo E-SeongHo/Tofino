@@ -1,13 +1,16 @@
+#include <DirectXMesh.h>
+
 #include "Model.h"
 #include "TextureLoader.h"
-#include <DirectXMesh.h>
 
 using DirectX::SimpleMath::Matrix;
 using DirectX::SimpleMath::Vector3;
 using namespace std;
 
-void Model::LoadModel(const std::string& filename)
+void Model::LoadModel(const std::string& filename, const float scale)
 {
+	cout << "Loading model... " << filename << endl;
+
 	int idx = filename.rfind("/");
 	m_directory = filename.substr(0, idx + 1);
 
@@ -17,27 +20,93 @@ void Model::LoadModel(const std::string& filename)
 
 	if (!scene)
 	{
-		std::cout << "failed to load model ( " << filename << " ) " << importer.GetErrorString() << std::endl;
+		std::cout << "Failed to load model ( " << filename << " ) " << importer.GetErrorString() << std::endl;
 		return;
 	}
     
     Matrix tr; // Initial transformation
 	LoadNode(scene->mRootNode, scene, tr);
 
-	cout << "meshes : " << m_meshes.size() << endl;
+	cout << "Total meshes : " << m_meshes.size() << endl;
+
+	NormalizeVertices(scale);
 }
 
-void Model::Init(ComPtr<ID3D11Device>& device, const float scale, const bool isHittable)
-{	// Load Textures, Create Buffers
+//void Model::Init(ComPtr<ID3D11Device>& device, const float scale, const bool isHittable)
+//{	// Load Textures, Create Buffers
+//
+//	// for just make one shared constant buffer instead of same different constant buffers for every mesh
+//	m_modelBufferCPU.world = Matrix();
+//	Util::CreateConstantBuffer(device, m_modelBufferCPU, m_modelBufferGPU);
+//
+//	for (auto& mesh : m_meshes)
+//	{
+//		// Textures
+//		mesh.m_meshMapInfoBufferCPU.hasAlbedoMap = !mesh.m_diffuseFilename.empty();
+//		mesh.m_meshMapInfoBufferCPU.hasNormalMap = !mesh.m_normalFilename.empty();
+//		mesh.m_meshMapInfoBufferCPU.hasHeightMap = !mesh.m_heightFilename.empty();
+//
+//		mesh.LoadTextures(device);
+//
+//		// Create Buffers
+//		mesh.m_indexCount = (UINT)mesh.m_indices.size();
+//		mesh.m_modelBufferCPU.world = Matrix();
+//		
+//		// mesh.CreateBuffers(device);
+//		Util::CreateVertexBuffer(device, mesh.m_vertices, mesh.m_vertexBuffer);
+//		Util::CreateIndexBuffer(device, mesh.m_indices, mesh.m_indexBuffer);
+//		mesh.m_modelBufferGPU = m_modelBufferGPU; // sharing resource
+//		Util::CreateConstantBuffer(device, mesh.m_meshMapInfoBufferCPU, mesh.m_meshMapInfoBufferGPU);
+//	}
+//	
+//}
 
+//void Model::Render(ComPtr<ID3D11DeviceContext>& context)
+//{
+//	for (auto& mesh : m_meshes)
+//	{
+//		mesh.SetSRVs(context);
+//		mesh.Render(context);
+//	}
+//}
+//
+//void Model::RenderNormal(ComPtr<ID3D11DeviceContext>& context)
+//{
+//	for (auto& mesh : m_meshes)
+//	{
+//		mesh.RenderNormal(context);
+//	}
+//}
+//
+//DirectX::SimpleMath::Matrix Model::GetWorldMatrix()
+//{
+//	return m_modelBufferCPU.world.Transpose();
+//}
+//
+//void Model::UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow)
+//{
+//	Matrix worldColumn = worldRow.Transpose();
+//	m_modelBufferCPU.world = worldColumn;
+//	m_modelBufferCPU.worldIT = worldColumn;
+//	m_modelBufferCPU.worldIT.Translation(Vector3(0.0f));
+//	m_modelBufferCPU.worldIT.Invert().Transpose();
+//}
+//
+//void Model::UpdateBuffer(ComPtr<ID3D11DeviceContext>& context)
+//{
+//	Util::UpdateConstantBuffer(context, m_modelBufferCPU, m_modelBufferGPU);
+//}
+
+void Model::NormalizeVertices(const float scale)
+{
 	using namespace DirectX;
 	// Normalize Vertex
 	Vector3 vmin(1000, 1000, 1000);
 	Vector3 vmax(-1000, -1000, -1000);
-	
-	for (auto& mesh : m_meshes) 
+
+	for (auto& mesh : m_meshes)
 	{
-		for (auto& v : mesh.m_vertices) 
+		for (auto& v : mesh.m_vertices)
 		{
 			vmin.x = XMMin(vmin.x, v.pos.x);
 			vmin.y = XMMin(vmin.y, v.pos.y);
@@ -53,9 +122,9 @@ void Model::Init(ComPtr<ID3D11Device>& device, const float scale, const bool isH
 	float cx = (vmax.x + vmin.x) * 0.5f, cy = (vmax.y + vmin.y) * 0.5f,
 		cz = (vmax.z + vmin.z) * 0.5f;
 
-	for (auto& mesh : m_meshes) 
+	for (auto& mesh : m_meshes)
 	{
-		for (auto& v : mesh.m_vertices) 
+		for (auto& v : mesh.m_vertices)
 		{
 			v.pos.x = ((v.pos.x - cx) / dl) * scale;
 			v.pos.y = ((v.pos.y - cy) / dl) * scale;
@@ -63,71 +132,9 @@ void Model::Init(ComPtr<ID3D11Device>& device, const float scale, const bool isH
 		}
 	}
 
-	// for just make one shared constant buffer instead of same different constant buffers for every mesh
-	m_modelBufferCPU.world = Matrix();
-	Util::CreateConstantBuffer(device, m_modelBufferCPU, m_modelBufferGPU);
-
-	for (auto& mesh : m_meshes)
-	{
-		// Textures
-		mesh.m_meshMapInfoBufferCPU.hasAlbedoMap = !mesh.m_diffuseFilename.empty();
-		mesh.m_meshMapInfoBufferCPU.hasNormalMap = !mesh.m_normalFilename.empty();
-		mesh.m_meshMapInfoBufferCPU.hasHeightMap = !mesh.m_heightFilename.empty();
-
-		mesh.LoadTextures(device);
-
-		// Create Buffers
-		mesh.m_indexCount = (UINT)mesh.m_indices.size();
-		mesh.m_modelBufferCPU.world = Matrix();
-		
-		// mesh.CreateBuffers(device);
-		Util::CreateVertexBuffer(device, mesh.m_vertices, mesh.m_vertexBuffer);
-		Util::CreateIndexBuffer(device, mesh.m_indices, mesh.m_indexBuffer);
-		mesh.m_modelBufferGPU = m_modelBufferGPU; // sharing resource
-		Util::CreateConstantBuffer(device, mesh.m_meshMapInfoBufferCPU, mesh.m_meshMapInfoBufferGPU);
-	}
-
-	if (isHittable)
-	{
-		onActive = isHittable;
-		m_boundingSphere = BoundingSphere(Vector3(0.0f, 0.0f, 0.0f), 0.5f);
-	}
-}
-
-void Model::Render(ComPtr<ID3D11DeviceContext>& context)
-{
-	for (auto& mesh : m_meshes)
-	{
-		mesh.SetSRVs(context);
-		mesh.Render(context);
-	}
-}
-
-void Model::RenderNormal(ComPtr<ID3D11DeviceContext>& context)
-{
-	for (auto& mesh : m_meshes)
-	{
-		mesh.RenderNormal(context);
-	}
-}
-
-DirectX::SimpleMath::Matrix Model::GetWorldMatrix()
-{
-	return m_modelBufferCPU.world.Transpose();
-}
-
-void Model::UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow)
-{
-	Matrix worldColumn = worldRow.Transpose();
-	m_modelBufferCPU.world = worldColumn;
-	m_modelBufferCPU.worldIT = worldColumn;
-	m_modelBufferCPU.worldIT.Translation(Vector3(0.0f));
-	m_modelBufferCPU.worldIT.Invert().Transpose();
-}
-
-void Model::UpdateBuffer(ComPtr<ID3D11DeviceContext>& context)
-{
-	Util::UpdateConstantBuffer(context, m_modelBufferCPU, m_modelBufferGPU);
+	float r = XMMin(XMMin(dx, dy), dz);
+	cout << "bounding radius " << r << endl;
+	m_boundingSphere = BoundingSphere(Vector3(0.0f, 0.0f, 0.0f), scale / 2.0f);
 }
 
 void Model::LoadNode(aiNode* node, const aiScene* scene, DirectX::SimpleMath::Matrix tr)
@@ -151,7 +158,6 @@ void Model::LoadNode(aiNode* node, const aiScene* scene, DirectX::SimpleMath::Ma
     {
         this->LoadNode(node->mChildren[i], scene, m);
     }
-
 }
 
 void Model::LoadMesh(aiMesh* mesh, const aiScene* scene)

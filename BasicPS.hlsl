@@ -3,7 +3,13 @@
 
 Texture2D diffuseTexture : register(t0); 
 Texture2D normalTexture : register(t1);
+
+TextureCube envIrradianceTexture : register(t10);
+TextureCube envSpecularTexture : register(t11);
+Texture2D envBrdfLookUpTexture : register(t12);
+
 SamplerState g_sampler : register(s0);
+SamplerState g_clampSampler : register(s1);
 
 cbuffer ModelConstBuffer : register(b0)
 {
@@ -49,7 +55,8 @@ float3 TBNTransform(PSInput input)
 
 float4 main(PSInput input) : SV_TARGET
 {
-	float4 albedo = hasAlbedoMap && activeAlbedoMap ? diffuseTexture.Sample(g_sampler, input.uv) : float4(0.0f, 0.0f, 0.0f, 0.0f);
+	float4 albedo = hasAlbedoMap && activeAlbedoMap ? diffuseTexture.Sample(g_sampler, input.uv) 
+		: float4(material.albedo, 1.0f);
 
 	float3 N = hasNormalMap && activeNormalMap ? TBNTransform(input) : input.normal;
 	float3 L = normalize(-light.direction); // directional light
@@ -67,6 +74,21 @@ float4 main(PSInput input) : SV_TARGET
 	float4 specular = material.metallic * pow(HdotN, light.coefficient);
 
 	float4 color = albedo + float4((diffuse + specular) * lighting);
+
+	// ambient lighting (IBL)
+	float3 irradiance = envIrradianceTexture.Sample(g_sampler, input.normal).rgb;
+	float3 diffuseIBL = material.roughness * irradiance;
+
+	float costheta = dot(input.normal, V);
+	float2 brdf = envBrdfLookUpTexture.Sample(g_clampSampler, float2(costheta, 1.0f - material.roughness)); // 1 - roughness for IBL baker
+	float3 sampled = envSpecularTexture.Sample(g_sampler, input.normal).rgb;
+
+	float3 specularIBL = material.metallic * (brdf.x + brdf.y) * sampled;
+
+	float3 ambientLighting = diffuseIBL + specularIBL;
+
+	color.rgb += ambientLighting;
+	//color = clamp(color, 0.0f, 1000.0f);
 
 	return color;
 }

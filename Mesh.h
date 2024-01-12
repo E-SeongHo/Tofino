@@ -27,21 +27,14 @@ struct ModelBuffer // Must Store as a Column Matrix
 // 16Byte align
 struct TextureStatus
 {
-    int hasAlbedoMap = 1;
-    int hasNormalMap = 1;
-    int hasHeightMap = 1;
+    int hasAlbedoMap = 0;
+    int hasNormalMap = 0;
+    int hasHeightMap = 0;
     int padding;
 };
 
-class Hittable
-{
-public:
-    bool onActive = false;
-    DirectX::BoundingSphere m_boundingSphere;
-};
-
 using Microsoft::WRL::ComPtr;
-class Mesh : public Hittable
+class Mesh
 {
 public:
     void CreateBuffers(ComPtr<ID3D11Device>& device);

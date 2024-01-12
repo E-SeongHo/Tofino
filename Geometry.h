@@ -9,44 +9,43 @@
 #include <DirectXCollision.h>
 
 #include "Util.h"
-#include "Mesh.h"
+#include "Object.h"
 
 using Microsoft::WRL::ComPtr;
-class Geometry : public Mesh
+class Geometry : public Object
 {
 public:
-    virtual void Init(const float scale = 1.0f, bool isHittable = false) = 0;
-    void ReverseIndices();
+    virtual void LoadGeometry(const float scale = 1.0f) = 0;
 };
 
 class Triangle : public Geometry
 {
 public:
-    void Init(const float scale = 1.0f, bool isHittable = false) override;
+    void LoadGeometry(const float scale = 1.0f) override;
 };
 
 class Square : public Geometry
 {
 public:
-    void Init(const float scale = 1.0f, bool isHittable = false) override;
+    void LoadGeometry(const float scale = 1.0f) override;
 };
 
 class Cube : public Geometry
 {
 public:
-    void Init(const float scale = 1.0f, bool isHittable = false) override;
+    void LoadGeometry(const float scale = 1.0f) override;
 };
 
 class Sphere : public Geometry
 {
 public:
-    void Init(const float scale = 1.0f, bool isHittable = false) override;
+    void LoadGeometry(const float scale = 1.0f) override;
 };
 
 class EnvMap 
 {
 private:
-    Geometry* m_mesh = nullptr;
+    Mesh* m_mesh;
 
     ComPtr<ID3D11ShaderResourceView> m_envSRV;
     // For IBL
@@ -57,5 +56,6 @@ private:
 public:
     void Init(ComPtr<ID3D11Device>& device, const std::wstring filepath);
     void Render(ComPtr<ID3D11DeviceContext>& context);
+    void SetIBLSRVs(ComPtr<ID3D11DeviceContext>& context);
     ~EnvMap();
 };

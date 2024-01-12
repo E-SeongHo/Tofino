@@ -130,15 +130,8 @@ void SystemBase::Run()
 			ImGui_ImplDX11_NewFrame(); // GUI 프레임 시작
 			ImGui_ImplWin32_NewFrame();
 
-			ImGui::NewFrame(); // 어떤 것들을 렌더링 할지 기록 시작
-			ImGui::Begin("Scene Control");
+			m_renderer->RenderGUI(); 
 
-			// ImGui가 측정해주는 Framerate 출력
-			ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
-				ImGui::GetIO().Framerate);
-
-			m_renderer->UpdateGUI(); // 추가적으로 사용할 GUI
-			ImGui::End();
 			ImGui::Render(); // 렌더링할 것들 기록 끝
 
 			m_renderer->Update(ImGui::GetIO().DeltaTime);
@@ -183,12 +176,12 @@ LRESULT SystemBase::ProcessMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 		break;
 	case WM_MOUSEMOVE:
 		//std::cout << "Mouse " << LOWORD(lParam) << " " << HIWORD(lParam) << std::endl;
-		m_renderer->ProcessMouseMove(LOWORD(lParam), HIWORD(lParam));
+		m_renderer->ProcessMouseMove((int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam));
 		break;
 	case WM_LBUTTONDOWN:
 		//cout << wParam << endl;
 		m_renderer->m_leftClick = true;
-		m_renderer->ProcessMouseMove(LOWORD(lParam), HIWORD(lParam));
+		m_renderer->ProcessMouseMove((int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam));
 		break;
 	case WM_LBUTTONUP:
 		m_renderer->m_leftClick = false;

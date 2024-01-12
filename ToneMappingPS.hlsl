@@ -1,6 +1,6 @@
 
 Texture2D g_texture : register(t0); // resolved SRV
-SamplerState g_sampler : register(s0);
+SamplerState g_sampler : register(s0); // clamp sampler
 
 struct ToneMappingPSInput
 {

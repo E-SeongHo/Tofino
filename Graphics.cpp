@@ -35,50 +35,49 @@ bool Graphics::Init()
 
     //model = make_shared<Triangle>();
     //model = new Cube();
-
     sphere = new Sphere();
-    sphere->Init(1.0f, true);
-    
+    sphere->LoadGeometry();
+
     const string texDirectory = "./Assets/Texture/wet-mossy-rocks-ue/";
-    sphere->m_diffuseFilename = texDirectory + "wet-mossy-rocks_albedo.png";
-    sphere->m_normalFilename = texDirectory + "wet-mossy-rocks_normal-dx.png";
-    sphere->m_heightFilename = texDirectory + "wet-mossy-rocks_height.png";
+    sphere->AttachAlbedoTexture(texDirectory + "wet-mossy-rocks_albedo.png");
+    sphere->AttachNormalTexture(texDirectory + "wet-mossy-rocks_normal-dx.png");
+    sphere->AttachHeightTexture(texDirectory + "wet-mossy-rocks_height.png");
+    sphere->SetMaterials(0.5f, 0.1f);
+    sphere->Init(m_device, true);
 
-    sphere->LoadTextures(m_device);
-    sphere->CreateBuffers(m_device);
+    spaceship = new Model();
+    spaceship->LoadModel("D:/Workspace/3DModels/sci-fi-space-station/SpaceStation.fbx", 10.0f);
+    spaceship->AttachAlbedoTexture(spaceship->m_directory + "SpaceStationParts2_BaseColor.png", 0);
+    spaceship->Init(m_device, true);
+    objects.push_back(spaceship);
 
-    model = new Model();
-    /*model->LoadModel("D:/Workspace/3DModels/sci-fi-space-station/SpaceStation.fbx");
-    model->m_meshes[0].m_diffuseFilename = model->m_directory + "SpaceStationParts2_BaseColor.png";*/
-
-    model->LoadModel("D:/Workspace/3DModels/E-45-Aircraft/E 45 Aircraft_obj.obj");
-    model->m_meshes[0].m_diffuseFilename = model->m_directory + "E-45 _col.jpg";
-    model->m_meshes[0].m_normalFilename = model->m_directory + "E-45-nor_1.jpg";
-    model->m_meshes[0].m_heightFilename = model->m_directory + "E-45-nor_1.jpg";
-
-    model->m_meshes[1].m_diffuseFilename = "";
-    model->m_meshes[1].m_normalFilename = model->m_directory + "E-45_glass_nor_.jpg";
-    model->m_meshes[1].m_heightFilename = model->m_directory + "E-45_glass_nor_.jpg";
-
-    //model->LoadModel("D:/Workspace/3DModels/stoneman/Stonefbx.fbx");
-    model->Init(m_device, 3.0f, true);
+    aircraft = new Model();
+    aircraft->LoadModel("D:/Workspace/3DModels/E-45-Aircraft/E 45 Aircraft_obj.obj", 3.0f);
+    aircraft->AttachAlbedoTexture(aircraft->m_directory + "E-45 _col.jpg", 0);
+    aircraft->AttachNormalTexture(aircraft->m_directory + "E-45-nor_1.jpg", 0);
+    aircraft->AttachHeightTexture(aircraft->m_directory + "E-45-nor_1.jpg", 0);
+    aircraft->AttachAlbedoTexture("", 1);
+    aircraft->AttachNormalTexture(aircraft->m_directory + "E-45_glass_nor_.jpg", 1);
+    aircraft->AttachHeightTexture(aircraft->m_directory + "E-45_glass_nor_.jpg", 1);
+    aircraft->SetMaterials(0.1f, 0.5f);
+    aircraft->Init(m_device, true);
+    objects.push_back(aircraft);
 
     pickingEffect = new Sphere();
-    pickingEffect->Init(0.1f, false);
-    pickingEffect->LoadDDSTexture(m_device, L"./Assets/Texture/Test/");
-    pickingEffect->CreateBuffers(m_device);
+    pickingEffect->LoadGeometry(0.1f);
+    pickingEffect->SetMaterials(0.1f, 0.3f, Vector3(0.0f, 0.4f, 0.4f));
+    pickingEffect->Init(m_device, false);
 
     m_copySquare = new Square();
-    m_copySquare->Init();
-    m_copySquare->CreateBuffers(m_device);
+    m_copySquare->LoadGeometry();
+    m_copySquare->Init(m_device, false);
 
     envMap = new EnvMap();
     envMap->Init(m_device, L"./Assets/Cubemap/HDRI/PlanetaryEarth/");
-    // envMap->m_mesh->CreateBuffers(); // Init()내부에서 실행
 
     Light light;
     light.pos = Vector3(-0.3f, 0.2f, -2.0f);
-    light.strength = 2.0f;
+    light.strength = 0.5f;
     light.direction = Vector3(0.1f, -0.2f, 1.0f);
     light.coefficient = 2.2f;
 
@@ -180,8 +179,25 @@ bool Graphics::InitD3D(const int screenWidth, const int screenHeight)
     ThrowIfFailed(m_device->CreateShaderResourceView(m_hdrResolvedBuffer.Get(), NULL, m_hdrResolvedSRV.GetAddressOf()));
     ThrowIfFailed(m_device->CreateRenderTargetView(m_hdrResolvedBuffer.Get(), NULL, m_hdrResolvedRTV.GetAddressOf()));
 
+    D3D11_SAMPLER_DESC sampDesc;
+    ZeroMemory(&sampDesc, sizeof(sampDesc));
+    sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    sampDesc.MinLOD = 0;
+    sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+    m_device->CreateSamplerState(&sampDesc, m_samplerState.GetAddressOf());
+
+    sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+
+    m_device->CreateSamplerState(&sampDesc, m_clampSampler.GetAddressOf());
+
     // Tone mapping!!!
-    
     ToneMappingSetUp();
 
     // Set the viewport
@@ -279,7 +295,11 @@ void Graphics::Update(float dt)
     sphere->UpdateBuffer(m_context);*/
     
     sphere->UpdateBuffer(m_context);
-    model->UpdateBuffer(m_context);
+
+    spaceship->UpdateWorldMatrix(Matrix::CreateRotationZ(0.5f * dt) * spaceship->GetWorldMatrix());
+    spaceship->UpdateBuffer(m_context);
+
+    aircraft->UpdateBuffer(m_context);
 }
 
 void Graphics::Render()
@@ -296,17 +316,19 @@ void Graphics::Render()
     m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
 
     m_context->VSSetShader(ShaderManager::GetInstance().basicVS.Get(), 0, 0);
-    m_context->VSSetSamplers(0, 1, m_samplerState.GetAddressOf());
     m_context->PSSetShader(ShaderManager::GetInstance().basicPS.Get(), 0, 0);
-    m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
-    
+
+    ID3D11SamplerState* samplers[] = { m_samplerState.Get(), m_clampSampler.Get() };
+    m_context->VSSetSamplers(0, 2, samplers);
+    m_context->PSSetSamplers(0, 2, samplers);
+
     if (m_wireRendering)
     {
-        m_context->RSSetState(m_solidState.Get());
+        m_context->RSSetState(m_wireState.Get());
     }
     else
     {
-        m_context->RSSetState(m_wireState.Get());
+        m_context->RSSetState(m_solidState.Get());
     }
 
     // Set Vertex & Index Buffer
@@ -314,13 +336,18 @@ void Graphics::Render()
     m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     SetGlobalConstantBuffers();
-    sphere->SetSRVs(m_context);
-    sphere->Render(m_context);
-    model->Render(m_context);
+    envMap->SetIBLSRVs(m_context);
+
+    //sphere->SetSRVs(m_context);
+    //sphere->Render(m_context);
+    
+    for (auto& object : objects)
+    {
+        object->Render(m_context);
+    }
     
     if (m_picking && m_leftClick)
     {
-        pickingEffect->SetSRVs(m_context);
         pickingEffect->Render(m_context);
     }
 
@@ -359,11 +386,11 @@ void Graphics::Render()
     m_context->OMSetRenderTargets(1, m_backBufferRTV.GetAddressOf(), NULL);
     
     m_context->VSSetShader(ShaderManager::GetInstance().copyVS.Get(), 0, 0);
-    m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+    m_context->PSSetSamplers(0, 1, m_clampSampler.GetAddressOf());
     m_context->PSSetShader(ShaderManager::GetInstance().toneMappingPS.Get(), 0, 0);
     m_context->PSSetShaderResources(0, 1, m_hdrResolvedSRV.GetAddressOf());
 
-    m_copySquare->Render(m_context);
+    m_copySquare->m_meshes[0].Render(m_context);
 }
 
 void Graphics::Present()
@@ -371,25 +398,45 @@ void Graphics::Present()
     m_swapChain->Present(1, 0);
 }
 
-void Graphics::UpdateGUI()
+void Graphics::RenderGUI()
 {
-    ImGui::Checkbox("wire rendering", &m_wireRendering);
-    ImGui::SliderFloat3("light position", &m_globalConstBufferCPU.light.pos.x, -200.0f, 200.0f);
-    ImGui::SliderFloat("light strength", &m_globalConstBufferCPU.light.strength, 0.0f, 10.0f);
-    ImGui::SliderFloat3("light direction", &m_globalConstBufferCPU.light.direction.x, -10.0f, 10.0f);
-    ImGui::SliderFloat("light coefficient", &m_globalConstBufferCPU.light.coefficient, 0.0f, 10.0f);
+    ImGui::StyleColorsClassic();
+    ImGui::NewFrame(); 
+    ImGui::Begin("Scene Control");
 
-    ImGui::SliderFloat("model roughness", &model->m_modelBufferCPU.material.roughness, 0.0f, 0.5f);
-    ImGui::SliderFloat("model metaillic", &model->m_modelBufferCPU.material.metallic, 0.0f, 0.5f);
-    ImGui::CheckboxFlags("model turn on height map", &model->m_modelBufferCPU.activeHeightMap, 1);
-    ImGui::CheckboxFlags("model turn on normal map", &model->m_modelBufferCPU.activeNormalMap, 1);
+    ImGui::Text("Avg: %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
+        ImGui::GetIO().Framerate);
 
+    if (ImGui::CollapsingHeader("Rendering Options"))
+    {
+        ImGui::Checkbox("Show WireFrame", &m_wireRendering);
+    }
+    
+    if (ImGui::CollapsingHeader("Light"))
+    {
+        ImGui::SliderFloat3("Origin", &m_globalConstBufferCPU.light.pos.x, -200.0f, 200.0f);
+        ImGui::SliderFloat("Strength", &m_globalConstBufferCPU.light.strength, 0.0f, 10.0f);
+        ImGui::SliderFloat3("Direction", &m_globalConstBufferCPU.light.direction.x, -10.0f, 10.0f);
+        ImGui::SliderFloat("Coefficient", &m_globalConstBufferCPU.light.coefficient, 0.0f, 10.0f);
+    }
 
-    ImGui::SliderFloat("sphere roughness", &sphere->m_modelBufferCPU.material.roughness, 0.0f, 0.5f);
-    ImGui::SliderFloat("sphere metaillic", &sphere->m_modelBufferCPU.material.metallic, 0.0f, 0.5f);
-    ImGui::CheckboxFlags("sphere turn on height map", &sphere->m_modelBufferCPU.activeHeightMap, 1);
-    ImGui::CheckboxFlags("sphere turn on normal map", &sphere->m_modelBufferCPU.activeNormalMap, 1);
-
+    if(ImGui::CollapsingHeader("Model"))
+    {
+        ImGui::SliderFloat("Roughness", &spaceship->m_modelBufferCPU.material.roughness, 0.0f, 0.5f);
+        ImGui::SliderFloat("Metaillic", &spaceship->m_modelBufferCPU.material.metallic, 0.0f, 0.5f);
+        ImGui::CheckboxFlags("Height Map", &spaceship->m_modelBufferCPU.activeHeightMap, 1);
+        ImGui::CheckboxFlags("Normal Map", &spaceship->m_modelBufferCPU.activeNormalMap, 1);
+    }
+    
+    if(ImGui::CollapsingHeader("Sphere"))
+    {
+        ImGui::SliderFloat("sphere roughness", &sphere->m_modelBufferCPU.material.roughness, 0.0f, 0.5f);
+        ImGui::SliderFloat("sphere metaillic", &sphere->m_modelBufferCPU.material.metallic, 0.0f, 0.5f);
+        ImGui::CheckboxFlags("sphere turn on height map", &sphere->m_modelBufferCPU.activeHeightMap, 1);
+        ImGui::CheckboxFlags("sphere turn on normal map", &sphere->m_modelBufferCPU.activeNormalMap, 1);
+    }
+    
+    ImGui::End();
 }
 
 
@@ -403,7 +450,6 @@ void Graphics::ProcessMouseMove(const int xPos, const int yPos)
     // To : [-1, -1] ~ [1, 1]
     const float ndcX = (xPos * 2.0f / m_width) - 1.0f;
     const float ndcY = -((yPos * 2.0f / m_height) - 1.0f);
-
     // traversal mode
     if (m_fpvMode)
     {    
@@ -416,7 +462,7 @@ void Graphics::ProcessMouseMove(const int xPos, const int yPos)
     {
         if (m_leftClick)
         {
-            if (m_picking) // on same plane
+            if (m_picking && m_pickingObject != nullptr) // on same plane
             {
                 Matrix view = cam->GetViewMatrix();
                 Matrix projection = cam->GetProjectionMatrix();
@@ -437,9 +483,9 @@ void Graphics::ProcessMouseMove(const int xPos, const int yPos)
                 Vector3 hitPoint = p0 + direction * distance;
                 Vector3 dv = hitPoint - prevHit;
 
-                model->UpdateWorldMatrix(model->GetWorldMatrix() * Matrix::CreateTranslation(dv));
-                model->UpdateBuffer(m_context);
-                model->m_boundingSphere.Center = model->m_boundingSphere.Center + dv;
+                m_pickingObject->UpdateWorldMatrix(m_pickingObject->GetWorldMatrix() * Matrix::CreateTranslation(dv));
+                m_pickingObject->UpdateBuffer(m_context);
+                m_pickingObject->m_boundingSphere.Center = m_pickingObject->m_boundingSphere.Center + dv;
 
                 pickingEffect->UpdateWorldMatrix(Matrix::CreateTranslation(hitPoint));
                 pickingEffect->UpdateBuffer(m_context);
@@ -461,26 +507,38 @@ void Graphics::ProcessMouseMove(const int xPos, const int yPos)
 
                 Ray ray = Ray(p0, direction);
 
-                // TODO : For all models which inherit Hittable Class
-                float distance = 0.0f;
-                bool hit = ray.Intersects(model->m_boundingSphere, distance);
-                if (hit)
+                for (Object* object : objects)
                 {
-                    if (!m_picking) m_picking = true;
-                    Vector3 hitPoint = p0 + direction * distance;
-                    Vector3 n = -cam->GetDirection();
-                    n.Normalize();
+                    if (!object->hitEnabled) continue;
+                    float distance = 0.0f;
+                    bool hit = ray.Intersects(object->m_boundingSphere, distance);
 
-                    prevHit = hitPoint;
-                    m_draggingPlane = Plane(hitPoint, n);
+                    if (hit)
+                    {
+                        if (!m_picking)
+                        {
+                            m_picking = true;
+                            m_pickingObject = object;
+                        }
+                        Vector3 hitPoint = p0 + direction * distance;
+                        Vector3 n = -cam->GetDirection();
+                        n.Normalize();
 
-                    pickingEffect->UpdateWorldMatrix(Matrix::CreateTranslation(hitPoint));
-                    pickingEffect->UpdateBuffer(m_context);
+                        prevHit = hitPoint;
+                        m_draggingPlane = Plane(hitPoint, n);
+
+                        pickingEffect->UpdateWorldMatrix(Matrix::CreateTranslation(hitPoint));
+                        pickingEffect->UpdateBuffer(m_context);
+                        break;
+                    }
                 }
             }
         }
         else
+        {
             m_picking = false;
+            m_pickingObject = nullptr;
+        }
     }
 }
 
@@ -490,22 +548,22 @@ void Graphics::ProcessMouseWheel(const int wheel)
     if (m_leftClick && m_picking)
     {
         int movement = wheel / 120; 
-        Vector3 dv = model
+        Vector3 dv = spaceship
             ->m_boundingSphere.Center - cam->GetOrigin();
         dv.Normalize();
         dv = dv * movement * speed;
 
         Matrix m = Matrix::CreateTranslation(dv);
-        model->UpdateWorldMatrix(model->GetWorldMatrix() * m);
-        model->UpdateBuffer(m_context);
-        model->m_boundingSphere.Center = model->m_boundingSphere.Center + dv;
+        spaceship->UpdateWorldMatrix(spaceship->GetWorldMatrix() * m);
+        spaceship->UpdateBuffer(m_context);
+        spaceship->m_boundingSphere.Center = spaceship->m_boundingSphere.Center + dv;
 
         pickingEffect->UpdateWorldMatrix(pickingEffect->GetWorldMatrix() * m);
         pickingEffect->UpdateBuffer(m_context);
 
         Vector3 n = -cam->GetDirection();
         n.Normalize();
-        m_draggingPlane = Plane(model->m_boundingSphere.Center, n);
+        m_draggingPlane = Plane(spaceship->m_boundingSphere.Center, n);
 
         prevHit = prevHit + dv;
     }
@@ -550,20 +608,6 @@ void Graphics::ToggleFPVMode()
 
 void Graphics::ToneMappingSetUp()
 {
-    // Create samplerstate for tone mapping
-    // now considering create rasterizer state as well?
-    D3D11_SAMPLER_DESC sampDesc;
-    ZeroMemory(&sampDesc, sizeof(sampDesc));
-    sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-    sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-    sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-    sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-    sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-    sampDesc.MinLOD = 0;
-    sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-
-    m_device->CreateSamplerState(&sampDesc, m_samplerState.GetAddressOf());
-
 
     // Rasterizer State
     D3D11_RASTERIZER_DESC rastDesc;
@@ -574,7 +618,6 @@ void Graphics::ToneMappingSetUp()
     rastDesc.DepthClipEnable = false; 
 
     ThrowIfFailed(m_device->CreateRasterizerState(&rastDesc, m_toneState.GetAddressOf()));
-
 }
 
 
@@ -582,7 +625,7 @@ Graphics::~Graphics()
 {
     delete cam;
     delete sphere;
-    delete model;
+    delete spaceship;
     delete envMap;
     delete m_copySquare;
 }

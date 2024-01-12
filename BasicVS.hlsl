@@ -3,6 +3,7 @@
 
 Texture2D heightTexture : register(t0);
 SamplerState g_sampler : register(s0);
+SamplerState g_clampSampler : register(s1);
 
 cbuffer ModelConstBuffer : register(b0)
 {

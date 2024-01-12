@@ -39,6 +39,9 @@ private:
     ComPtr<ID3D11RenderTargetView> m_backBufferRTV; // final RTV
     ComPtr<ID3D11RasterizerState> m_solidState;
     ComPtr<ID3D11RasterizerState> m_wireState;
+    
+    ComPtr<ID3D11SamplerState> m_samplerState;
+    ComPtr<ID3D11SamplerState> m_clampSampler;
 
     ComPtr<ID3D11Texture2D> m_hdrBuffer; // use MSAA, DXGI_FORMAT_R16G16B16A16_FLOAT
     ComPtr<ID3D11Texture2D> m_hdrResolvedBuffer; // no MSAA, DXGI_FORMAT_R16G16B16A16_FLOAT
@@ -55,9 +58,12 @@ private:
 
     D3D11_VIEWPORT m_screenViewport;
 
+    // Objects
+    std::vector<Object*> objects;
     Camera* cam = nullptr;
     Geometry* sphere = nullptr;
-    Model* model = nullptr;
+    Model* spaceship = nullptr;
+    Model* aircraft = nullptr;
     EnvMap* envMap = nullptr;
     Geometry* pickingEffect = nullptr;
 
@@ -66,7 +72,6 @@ private:
 
     // Tone Mapping
     Geometry* m_copySquare = nullptr; // square mesh for copy
-    ComPtr<ID3D11SamplerState> m_samplerState;
     ComPtr<ID3D11RasterizerState> m_toneState;
 
     bool m_fpvMode = false;
@@ -85,7 +90,7 @@ public:
     void Render();
     void Present();
 
-    void UpdateGUI();
+    void RenderGUI();
     float GetAspectRatio();
     void ToggleFPVMode();
 
@@ -101,6 +106,7 @@ public:
     bool m_leftClick = false;
     bool m_rightClick = false;
     bool m_picking = false;
+    Object* m_pickingObject = nullptr;
     DirectX::SimpleMath::Plane m_draggingPlane;
     DirectX::SimpleMath::Vector3 prevHit;
 };

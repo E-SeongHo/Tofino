@@ -63,7 +63,6 @@ void Camera::RotateFromMouse(const float ndcX, const float ndcY)
 	//std::cout << ndcX << ", " << ndcY << std::endl;
 	//std::cout << m_direction.x << ", " << m_direction.y << ", " << m_direction.z << std::endl;
 	//float yaw = (ndcX - m_prevX) * XM_2PI;
-
 	float dx = ndcX;
 	float dy = ndcY;
 
@@ -71,7 +70,6 @@ void Camera::RotateFromMouse(const float ndcX, const float ndcY)
 	m_pitch += -(dy); // x axis rotation
 	/*if (m_pitch > 89.0f) m_pitch = 89.0f;
 	if (m_pitch < -89.0f) m_pitch = -89.0f;*/
-
 	Quaternion q = Quaternion::CreateFromYawPitchRoll(Vector3(m_pitch, m_yaw, 0.0f));
 	m_direction = Vector3::Transform(Vector3(0.0f, 0.0f, 1.0f), Matrix::CreateFromQuaternion(q));
 	m_up = Vector3::Transform(Vector3(0.0f, 1.0f, 0.0f), Matrix::CreateFromQuaternion(q));

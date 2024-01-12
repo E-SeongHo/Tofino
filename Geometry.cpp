@@ -11,25 +11,28 @@ using DirectX::SimpleMath::Vector2;
 using DirectX::SimpleMath::Matrix;
 using DirectX::BoundingSphere;
 
-void Geometry::ReverseIndices()
+//void Geometry::ReverseIndices()
+//{
+//    std::reverse(m_indices.begin(), m_indices.end());
+//}
+
+void Triangle::LoadGeometry(const float scale)
 {
-    std::reverse(m_indices.begin(), m_indices.end());
+    Mesh mesh;
+    
+    mesh.m_vertices.push_back(Vertex{ Vector3{ -1.0f, -1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
+    mesh.m_vertices.push_back(Vertex{ Vector3{ 0.0f, 1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
+    mesh.m_vertices.push_back(Vertex{ Vector3{ 1.0f, -1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
+
+    mesh.m_indices = { 0, 1, 2 };
+
+    m_meshes.push_back(mesh);
 }
 
-void Triangle::Init(const float scale, bool isHittable)
+void Square::LoadGeometry(const float scale)
 {
-    m_vertices.push_back(Vertex{ Vector3{ -1.0f, -1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
-    m_vertices.push_back(Vertex{ Vector3{ 0.0f, 1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
-    m_vertices.push_back(Vertex{ Vector3{ 1.0f, -1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
+    Mesh mesh;
 
-    m_indices = { 0, 1, 2 };
-    m_indexCount = (UINT)m_indices.size();
-
-    m_modelBufferCPU.world = Matrix();
-}
-
-void Square::Init(const float scale, bool isHittable)
-{
     vector<Vector3> positions;
     vector<Vector3> colors;
     vector<Vector3> normals;
@@ -61,17 +64,16 @@ void Square::Init(const float scale, bool isHittable)
         v.normal = normals[i];
         v.uv = texcoords[i];
 
-        m_vertices.push_back(v);
+        mesh.m_vertices.push_back(v);
     }
-    m_indices = { 0, 1, 2, 0, 2, 3, };
+    mesh.m_indices = { 0, 1, 2, 0, 2, 3, };
 
-    m_indexCount = (UINT)m_indices.size();
-
-    m_modelBufferCPU.world = Matrix();
+    m_meshes.push_back(mesh);
 }
 
-void Cube::Init(const float scale, bool isHittable)
+void Cube::LoadGeometry(const float scale)
 {
+    Mesh mesh;
     vector<Vector3> positions;
     vector<Vector3> colors;
     vector<Vector3> normals;
@@ -193,10 +195,11 @@ void Cube::Init(const float scale, bool isHittable)
         v.normal = normals[i];
         v.uv = texcoords[i];
 
-        m_vertices.push_back(v);
+        mesh.m_vertices.push_back(v);
     }
 
-    m_indices = {
+    mesh.m_indices = 
+    {
         0,  1,  2,  0,  2,  3,  // 윗면
         4,  5,  6,  4,  6,  7,  // 아랫면
         8,  9,  10, 8,  10, 11, // 앞면
@@ -204,16 +207,18 @@ void Cube::Init(const float scale, bool isHittable)
         16, 17, 18, 16, 18, 19, // 왼쪽
         20, 21, 22, 20, 22, 23  // 오른쪽
     };
-    m_indexCount = (UINT)m_indices.size();
 
-    m_modelBufferCPU.world = Matrix();
+    m_meshes.push_back(mesh);
+
+    m_boundingSphere = BoundingSphere(Vector3(0.0f, 0.0f, 0.0f), scale / 2.0f);
 }
 
-void Sphere::Init(const float scale, bool isHittable)
+void Sphere::LoadGeometry(const float scale)
 {
     // https://www.songho.ca/opengl/gl_sphere.html
     using namespace DirectX;
 
+    Mesh mesh;
     vector<Vector3> positions;
     vector<Vector3> colors;
     vector<Vector3> normals;
@@ -267,7 +272,7 @@ void Sphere::Init(const float scale, bool isHittable)
         v.uv = texcoords[i];
         v.tangent = tangents[i];
 
-        m_vertices.push_back(v);
+        mesh.m_vertices.push_back(v);
     }
 
     for (int i = 0; i < stackCount; ++i)
@@ -276,31 +281,32 @@ void Sphere::Init(const float scale, bool isHittable)
         
         for (int j = 0; j < sectorCount; ++j)
         {
-            m_indices.push_back(offset + j);
-            m_indices.push_back(offset + j + 1);
-            m_indices.push_back(offset + j + sectorCount + 1);
+            mesh.m_indices.push_back(offset + j);
+            mesh.m_indices.push_back(offset + j + 1);
+            mesh.m_indices.push_back(offset + j + sectorCount + 1);
             
-            m_indices.push_back(offset + j + 1);
-            m_indices.push_back(offset + j + 1 + sectorCount + 1);
-            m_indices.push_back(offset + j + sectorCount + 1);
+            mesh.m_indices.push_back(offset + j + 1);
+            mesh.m_indices.push_back(offset + j + 1 + sectorCount + 1);
+            mesh.m_indices.push_back(offset + j + sectorCount + 1);
         }
     }
 
-    m_indexCount = (UINT)m_indices.size();
-    m_modelBufferCPU.world = Matrix();
+    m_meshes.push_back(mesh);
 
-    if (isHittable)
-    {
-        onActive = isHittable;
-        m_boundingSphere = BoundingSphere(Vector3(0.0f, 0.0f, 0.0f), radius);
-    }
+    m_boundingSphere = BoundingSphere(Vector3(0.0f, 0.0f, 0.0f), radius);
 }
 
 void EnvMap::Init(ComPtr<ID3D11Device>& device, const wstring filepath)
 {
-    m_mesh = new Cube();
-    m_mesh->Init(100.0f);
-    m_mesh->ReverseIndices();
+    Cube cube;
+    cube.LoadGeometry(100.0f);
+
+    m_mesh = new Mesh();
+    m_mesh->m_vertices = cube.m_meshes[0].m_vertices;
+    m_mesh->m_indices = cube.m_meshes[0].m_indices;
+    m_mesh->m_indexCount = m_mesh->m_indices.size();
+
+    std::reverse(m_mesh->m_indices.begin(), m_mesh->m_indices.end());
 
     int idx = filepath.rfind(L"/", filepath.size() - 2);
     wstring prefix = filepath.substr(idx);
@@ -316,7 +322,7 @@ void EnvMap::Init(ComPtr<ID3D11Device>& device, const wstring filepath)
     TextureLoader::CreateDDSCubemapTexture(device, specularFilename, m_specularSRV);
     TextureLoader::CreateDDSTexture(device, brdfFilename, m_brdfLookUpSRV);
 
-    m_mesh->CreateBuffers(device); // m_mesh가 private이므로 여기서 Buffer 생성
+    m_mesh->CreateBuffers(device);
 }
 
 void EnvMap::Render(ComPtr<ID3D11DeviceContext>& context)
@@ -324,6 +330,14 @@ void EnvMap::Render(ComPtr<ID3D11DeviceContext>& context)
     context->PSSetShaderResources(0, 1, m_envSRV.GetAddressOf());
 
     m_mesh->Render(context);
+}
+
+void EnvMap::SetIBLSRVs(ComPtr<ID3D11DeviceContext>& context)
+{
+    ID3D11ShaderResourceView* IBLTextures[] = 
+    { m_irradianceSRV.Get(), m_specularSRV.Get(), m_brdfLookUpSRV.Get() };
+
+    context->PSSetShaderResources(10, 3, IBLTextures);
 }
 
 EnvMap::~EnvMap()
