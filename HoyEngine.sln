@@ -3,24 +3,27 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.33927.289
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HoyEngine", "HoyEngine.vcxproj", "{3898D088-CBED-4FF0-9F8E-A7A0EF687243}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HoyEngine", "HoyEngine\HoyEngine.vcxproj", "{3898D088-CBED-4FF0-9F8E-A7A0EF687243}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Cosmos", "Cosmos\Cosmos.vcxproj", "{AF9E3461-B7FD-4AFC-A387-BBDCB8EA9D43}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3898D088-CBED-4FF0-9F8E-A7A0EF687243} = {3898D088-CBED-4FF0-9F8E-A7A0EF687243}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
 		Release|x64 = Release|x64
-		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{3898D088-CBED-4FF0-9F8E-A7A0EF687243}.Debug|x64.ActiveCfg = Debug|x64
 		{3898D088-CBED-4FF0-9F8E-A7A0EF687243}.Debug|x64.Build.0 = Debug|x64
-		{3898D088-CBED-4FF0-9F8E-A7A0EF687243}.Debug|x86.ActiveCfg = Debug|Win32
-		{3898D088-CBED-4FF0-9F8E-A7A0EF687243}.Debug|x86.Build.0 = Debug|Win32
 		{3898D088-CBED-4FF0-9F8E-A7A0EF687243}.Release|x64.ActiveCfg = Release|x64
 		{3898D088-CBED-4FF0-9F8E-A7A0EF687243}.Release|x64.Build.0 = Release|x64
-		{3898D088-CBED-4FF0-9F8E-A7A0EF687243}.Release|x86.ActiveCfg = Release|Win32
-		{3898D088-CBED-4FF0-9F8E-A7A0EF687243}.Release|x86.Build.0 = Release|Win32
+		{AF9E3461-B7FD-4AFC-A387-BBDCB8EA9D43}.Debug|x64.ActiveCfg = Debug|x64
+		{AF9E3461-B7FD-4AFC-A387-BBDCB8EA9D43}.Debug|x64.Build.0 = Debug|x64
+		{AF9E3461-B7FD-4AFC-A387-BBDCB8EA9D43}.Release|x64.ActiveCfg = Release|x64
+		{AF9E3461-B7FD-4AFC-A387-BBDCB8EA9D43}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
