@@ -16,17 +16,12 @@ EnvMap::EnvMap(const std::string name, const std::wstring filepath)
 
 void EnvMap::Init(ComPtr<ID3D11Device>& device)
 {
-    Cube cube;
-    cube.LoadGeometry(200.0f);
+    m_shape.LoadGeometry(200.0f);
 
-    m_mesh = new Mesh();
-    m_mesh->m_vertices = cube.m_meshes[0].m_vertices;
-    m_mesh->m_indices = cube.m_meshes[0].m_indices;
-    m_mesh->m_indexCount = m_mesh->m_indices.size();
+    Mesh& mesh = m_shape.m_meshes[0];
+    std::reverse(mesh.m_indexBuffer.GetData().begin(), mesh.m_indexBuffer.GetData().end());
 
-    std::reverse(m_mesh->m_indices.begin(), m_mesh->m_indices.end());
-
-    int idx = m_filepath.rfind(L"/", m_filepath.size() - 2);
+    size_t idx = m_filepath.rfind(L"/", m_filepath.size() - 2);
     wstring prefix = m_filepath.substr(idx);
     prefix = prefix.substr(1, prefix.size() - 2);
 
@@ -40,14 +35,16 @@ void EnvMap::Init(ComPtr<ID3D11Device>& device)
     TextureLoader::CreateDDSCubemapTexture(device, specularFilename, m_specularSRV);
     TextureLoader::CreateDDSTexture(device, brdfFilename, m_brdfLookUpSRV);
 
-    m_mesh->CreateBuffers(device);
+    m_shape.Init(device);
 }
 
 void EnvMap::Render(ComPtr<ID3D11DeviceContext>& context)
 {
+    m_shape.GetConstBuffer().Bind(context);
+
     context->PSSetShaderResources(0, 1, m_envSRV.GetAddressOf());
 
-    m_mesh->Render(context);
+    m_shape.m_meshes[0].Render(context);
 }
 
 void EnvMap::SetIBLSRVs(ComPtr<ID3D11DeviceContext>& context)
@@ -60,5 +57,4 @@ void EnvMap::SetIBLSRVs(ComPtr<ID3D11DeviceContext>& context)
 
 EnvMap::~EnvMap()
 {
-    delete(m_mesh);
 }

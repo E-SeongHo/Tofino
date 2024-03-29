@@ -22,7 +22,7 @@ Application::Application()
 	m_input = make_unique<Input>();
 
 	// Early Initialization of Singleton
-	RendererInstance;
+	Graphics::GetInstance();
 	ShaderManager::GetInstance();
 }
 
@@ -102,7 +102,7 @@ bool Application::InitRenderer()
 {
 	//m_renderer = make_unique<Graphics>(m_window, m_width, m_height);
 	
-	if(!RendererInstance.Init(m_window, m_width, m_height))
+	if(!Graphics::Init(m_window, m_width, m_height))
 		return false;
 
 	return true;
@@ -118,7 +118,7 @@ bool Application::InitGUI()
 	ImGui::StyleColorsClassic();
 
 	// Setup Platform/Renderer backends
-	if (!RendererInstance.SetupGUIBackEnd())
+	if (!Graphics::SetupGUIBackEnd())
 		return false;
 
 	if (!ImGui_ImplWin32_Init(m_window)) 
@@ -151,10 +151,10 @@ void Application::Run()
 			ImGui::Render();
 
 			Update(ImGui::GetIO().DeltaTime);
-			RendererInstance.RenderScene(m_currentScene);
+			Graphics::RenderScene(m_currentScene);
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // GUI ·»´õ¸µ
 			
-			RendererInstance.Present();
+			Graphics::Present();
 		}
 	}
 }
@@ -243,7 +243,7 @@ void Application::MouseTranslateObject(float deltaTime)
 
             pickingObject->UpdateWorldMatrix(pickingObject->GetWorldMatrix() * Matrix::CreateTranslation(dv));
             pickingObject->m_transform.Location += dv;
-            pickingObject->UpdateBuffer(RendererInstance.GetDeviceContext());
+            pickingObject->UpdateBuffer(Graphics::GetDeviceContext());
             pickingObject->m_boundingSphere.Center = pickingObject->m_boundingSphere.Center + dv;
 
             prevHit = hitPoint;
@@ -261,7 +261,7 @@ void Application::MouseTranslateObject(float deltaTime)
 				Matrix m = Matrix::CreateTranslation(dv);
 				pickingObject->UpdateWorldMatrix(pickingObject->GetWorldMatrix() * m);
 				pickingObject->m_transform.Location += dv;
-				pickingObject->UpdateBuffer(RendererInstance.GetDeviceContext());
+				pickingObject->UpdateBuffer(Graphics::GetDeviceContext());
 				pickingObject->m_boundingSphere.Center = pickingObject->m_boundingSphere.Center + dv;
 
 				Vector3 n = -cam->GetDirection();

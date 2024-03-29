@@ -1,16 +1,9 @@
 #pragma once
 
 #include "Material.h"
-#include "Util.h"
-
-struct Vertex
-{
-    DirectX::SimpleMath::Vector3 pos;
-    DirectX::SimpleMath::Vector3 color;
-    DirectX::SimpleMath::Vector3 normal;
-    DirectX::SimpleMath::Vector2 uv;
-    DirectX::SimpleMath::Vector3 tangent;
-};
+#include "ConstantBuffer.h"
+#include "VertexBuffer.h"
+#include "IndexBuffer.h"
 
 // 16Byte align
 struct ModelBuffer // Must Store as a Column Matrix 
@@ -19,6 +12,8 @@ struct ModelBuffer // Must Store as a Column Matrix
     DirectX::SimpleMath::Matrix worldIT;
 
     Material material; // 32Bytes, It's better having material each mesh for lighting, but art it later
+    
+    // for test 
     int activeAlbedoMap = 1;
     int activeNormalMap = 1;
     int activeHeightMap = 1;
@@ -38,14 +33,13 @@ using Microsoft::WRL::ComPtr;
 class Mesh
 {
 public:
-    void CreateBuffers(ComPtr<ID3D11Device>& device);
+    Mesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
+    
+    void Init(ComPtr<ID3D11Device>& device);
     void UpdateBuffer(ComPtr<ID3D11DeviceContext>& context);
     void Render(ComPtr<ID3D11DeviceContext>& context);
     void RenderNormal(ComPtr<ID3D11DeviceContext>& context);
     void CopySquareRenderSetup(ComPtr<ID3D11DeviceContext>& context);
-    DirectX::SimpleMath::Matrix GetWorldMatrix();
-
-    void UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow);
 
     void LoadDDSTexture(ComPtr<ID3D11Device>& device, const std::wstring filepath);
     void LoadTexture(ComPtr<ID3D11Device>& device, const std::string filepath, ComPtr<ID3D11ShaderResourceView>& srv, const bool gammaDecode);
@@ -53,18 +47,11 @@ public:
     void SetSRVs(ComPtr<ID3D11DeviceContext>& context);
 
 public:
-    ComPtr<ID3D11Buffer> m_vertexBuffer;
-    ComPtr<ID3D11Buffer> m_indexBuffer;
-    ComPtr<ID3D11Buffer> m_modelBufferGPU;
-    ComPtr<ID3D11Buffer> m_meshMapInfoBufferGPU;
+    VertexBuffer m_vertexBuffer;
+    IndexBuffer m_indexBuffer;
     UINT m_indexCount = 0;
 
-    ModelBuffer m_modelBufferCPU; // share Model's buffer
-    TextureStatus m_meshMapInfoBufferCPU; // each mesh has a different buffer 
-
-    // Meshes
-    std::vector<Vertex> m_vertices;
-    std::vector<uint32_t> m_indices;
+    ConstantBuffer<TextureStatus> m_meshMapInfoBuffer;  // each mesh has a different buffer 
 
     // Textures
     std::string m_diffuseFilename;

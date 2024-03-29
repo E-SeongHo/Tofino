@@ -23,7 +23,7 @@ struct GlobalBuffer
 class Scene
 {
 public:
-	Scene() = default;
+	Scene();
 	~Scene();
 	
 	// Binds an update function of the scene
@@ -44,9 +44,6 @@ public:
 	// Adds skybox on the scene and init object
 	void AddSkybox(EnvMap* skybox);
 
-	// Adds scene const buffer
-	void AddSceneBuffer(GlobalBuffer* sceneConst);
-
 	// Update : Calls bound update function
 	void Update(float deltaTime);
 
@@ -59,8 +56,8 @@ public:
 	// Returns skybox of the scene
 	EnvMap* GetSkybox();
 
-	// Returns scene const buffer reference
-	GlobalBuffer* GetSceneBuffer();
+	// Gets SceneConstBuffer
+	ConstantBuffer<GlobalBuffer>& GetSceneConstBuffer();
 
 private:
 	// Update Function for the scene
@@ -72,7 +69,10 @@ private:
 	std::vector<Object*> m_objects;
 	std::vector<Light*> m_lights; // TODO: light will be derived from object soon(to draw emitting)
 
-	GlobalBuffer* m_sceneConstBufferCPU;
+	// I still don't think it needs to be ref counted, and neither managed with pointer
+	// this life scope would be equal with the scene life scope
+	// ) If scene deleted : scene will be ref counted, so the member will not be deleted
+	ConstantBuffer<GlobalBuffer> m_constBuffer; 
 
 	EnvMap* m_skybox = nullptr;
 };

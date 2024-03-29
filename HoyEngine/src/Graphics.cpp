@@ -27,7 +27,49 @@ using DirectX::SimpleMath::Plane;
 //    ShaderManager::GetInstance();
 //}
 
+// Wrappers
+Graphics& s = Graphics::GetInstance();
+
 bool Graphics::Init(HWND hWnd, const int screenWidth, const int screenHeight)
+{
+    return s._Init(hWnd, screenWidth, screenHeight);
+}
+
+bool Graphics::InitD3D(const int screenWidth, const int screenHeight)
+{
+    return s._InitD3D(screenWidth, screenHeight);
+}
+
+bool Graphics::SetupGUIBackEnd()
+{
+    if (!ImGui_ImplDX11_Init(GetInstance().m_device.Get(), GetInstance().m_context.Get()))
+        return false;
+
+    return true;
+}
+
+void Graphics::RenderScene(Scene* scene)
+{
+    return s._RenderScene(scene);
+}
+
+void Graphics::Present()
+{
+    s.m_swapChain->Present(1, 0);
+}
+
+ComPtr<ID3D11Device>& Graphics::GetDevice()
+{
+    return s.m_device;
+}
+
+ComPtr<ID3D11DeviceContext>& Graphics::GetDeviceContext()
+{
+    return s.m_context;
+}
+
+// Implementations
+bool Graphics::_Init(HWND hWnd, const int screenWidth, const int screenHeight)
 {
     m_window = hWnd;
     m_width = screenWidth;
@@ -44,7 +86,7 @@ bool Graphics::Init(HWND hWnd, const int screenWidth, const int screenHeight)
     return true;
 }
 
-bool Graphics::InitD3D(const int screenWidth, const int screenHeight)
+bool Graphics::_InitD3D(const int screenWidth, const int screenHeight)
 {
     // Create SwapChain, d3d device, d3d device context
     const D3D_DRIVER_TYPE driverType = D3D_DRIVER_TYPE_HARDWARE;
@@ -148,8 +190,15 @@ bool Graphics::InitD3D(const int screenWidth, const int screenHeight)
 
     m_device->CreateSamplerState(&sampDesc, m_clampSampler.GetAddressOf());
 
-    // Tone mapping!!!
-    ToneMappingSetUp();
+    // Tone mapping set up
+    D3D11_RASTERIZER_DESC rastDesc;
+    ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC));
+    rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
+    rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
+    rastDesc.FrontCounterClockwise = false;
+    rastDesc.DepthClipEnable = false;
+
+    ThrowIfFailed(m_device->CreateRasterizerState(&rastDesc, m_toneState.GetAddressOf()));
 
     // Set the viewport
     ZeroMemory(&m_screenViewport, sizeof(D3D11_VIEWPORT));
@@ -165,7 +214,7 @@ bool Graphics::InitD3D(const int screenWidth, const int screenHeight)
 
     // Create a rasterizer state
     // Make Both(solid, wire)
-    D3D11_RASTERIZER_DESC rastDesc;
+    //D3D11_RASTERIZER_DESC rastDesc;
     ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC));
     rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
     rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
@@ -216,47 +265,7 @@ bool Graphics::InitD3D(const int screenWidth, const int screenHeight)
     return true;
 }
 
-bool Graphics::SetupGUIBackEnd()
-{
-    if (!ImGui_ImplDX11_Init(m_device.Get(), m_context.Get())) 
-        return false;
-    return true;
-}
-
-void Graphics::SetGlobalConstantBuffers()
-{
-    // register b10 will receive it
-    m_context->VSSetConstantBuffers(10, 1, m_globalConstBufferGPU.GetAddressOf());
-    m_context->GSSetConstantBuffers(10, 1, m_globalConstBufferGPU.GetAddressOf());
-    m_context->PSSetConstantBuffers(10, 1, m_globalConstBufferGPU.GetAddressOf());
-}
-
-//void Graphics::Update(float dt)
-//{
-//    // Camera
-//    UpdateCameraPosition(dt);
-//    m_globalConstBufferCPU.view = cam->GetViewMatrix().Transpose();
-//    m_globalConstBufferCPU.projection = cam->GetProjectionMatrix().Transpose();
-//
-//    Util::UpdateConstantBuffer(m_context, m_globalConstBufferCPU, m_globalConstBufferGPU);
-//
-//    // Model 
-//    //cout << model->m_boundingSphere.Center.z << endl;
-//    /*sphere->UpdateWorldMatrix(Matrix::CreateRotationY(1.0f * dt) * Matrix::CreateRotationX(1.0f * dt) * sphere->GetWorldMatrix());
-//    sphere->UpdateBuffer(m_context);*/
-//
-//    spaceship->UpdateWorldMatrix(Matrix::CreateRotationZ(0.5f * dt) * spaceship->GetWorldMatrix());
-//
-//    for (auto& object : objects)
-//    {
-//        if (object->m_updateFlag)
-//        {
-//            object->UpdateBuffer(m_context);
-//        }
-//    }
-//}
-
-void Graphics::RenderScene(Scene* scene)
+void Graphics::_RenderScene(Scene* scene)
 {
     //cout << cam->GetOrigin().x << " " << cam->GetOrigin().y << " " << cam->GetOrigin().z << endl;
     m_context->RSSetViewports(1, &m_screenViewport);
@@ -289,7 +298,7 @@ void Graphics::RenderScene(Scene* scene)
     m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
     m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    SetGlobalConstantBuffers();
+    scene->GetSceneConstBuffer().Bind(m_context);
     scene->GetSkybox()->SetIBLSRVs(m_context); // for objects
 
     //sphere->SetSRVs(m_context);
@@ -323,7 +332,7 @@ void Graphics::RenderScene(Scene* scene)
     m_context->PSSetShader(ShaderManager::GetInstance().envMapPS.Get(), 0, 0);
     m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
     
-    SetGlobalConstantBuffers();
+    scene->GetSceneConstBuffer().Bind(m_context); 
     scene->GetSkybox()->Render(m_context);
 
     // Resolve
@@ -344,61 +353,8 @@ void Graphics::RenderScene(Scene* scene)
     m_context->PSSetShader(ShaderManager::GetInstance().toneMappingPS.Get(), 0, 0);
     m_context->PSSetShaderResources(0, 1, m_hdrResolvedSRV.GetAddressOf());
 
+    m_copySquare->GetConstBuffer().Bind(m_context);
     m_copySquare->m_meshes[0].Render(m_context);
-}
-
-void Graphics::Present()
-{
-    m_swapChain->Present(1, 0);
-}
-
-
-float Graphics::GetAspectRatio()
-{
-    return float(m_width) / m_height;
-}
-
-void Graphics::ToneMappingSetUp()
-{
-    // Rasterizer State
-    D3D11_RASTERIZER_DESC rastDesc;
-    ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC));
-    rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
-    rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
-    rastDesc.FrontCounterClockwise = false;
-    rastDesc.DepthClipEnable = false; 
-
-    ThrowIfFailed(m_device->CreateRasterizerState(&rastDesc, m_toneState.GetAddressOf()));
-}
-
-ComPtr<ID3D11Device>& Graphics::GetDevice()
-{
-    return m_device;
-}
-
-ComPtr<ID3D11DeviceContext>& Graphics::GetDeviceContext()
-{
-    return m_context;
-}
-
-void Graphics::InitObject(Object* object)
-{
-    object->Init(m_device);
-}
-
-void Graphics::InitSceneGlobal(GlobalBuffer* globalConst)
-{
-    Util::CreateConstantBuffer(m_device, *globalConst, m_globalConstBufferGPU);
-}
-
-void Graphics::InitSkybox(EnvMap* skybox)
-{
-    skybox->Init(m_device);
-}
-
-void Graphics::UploadGlobalConst(GlobalBuffer* globalConst)
-{
-    Util::UpdateConstantBuffer(m_context, *globalConst, m_globalConstBufferGPU);
 }
 
 Graphics::~Graphics()

@@ -16,8 +16,6 @@
 #include "EnvMap.h"
 #include "Scene.h"
 
-#define RendererInstance Graphics::GetInstance()
-
 using Microsoft::WRL::ComPtr;
 class Graphics
 {
@@ -29,35 +27,15 @@ public:
     }
     ~Graphics();
        
-    bool Init(HWND hWnd, const int screenWidth, const int screenHeight);
-    bool InitD3D(const int screenWidth, const int screenHeight);
-    bool SetupGUIBackEnd();
+    static bool Init(HWND hWnd, const int screenWidth, const int screenHeight);
+    static bool InitD3D(const int screenWidth, const int screenHeight);
+    static bool SetupGUIBackEnd();
 
-    // void Update(float dt);
-    void RenderScene(Scene* scene);
-    void Present();
+    static void RenderScene(Scene* scene);
+    static void Present();
 
-    float GetAspectRatio();
-
-    void ToneMappingSetUp();
-
-    // Gets d3d device
-    ComPtr<ID3D11Device>& GetDevice();
-
-    // Gets d3d device context
-    ComPtr<ID3D11DeviceContext>& GetDeviceContext();
-
-    // Sets up object
-    void InitObject(Object* object);
-
-    // Sets up scene global const buffer
-    void InitSceneGlobal(GlobalBuffer* globalConst);
-    
-    // Sets up skybox
-    void InitSkybox(EnvMap* skybox);
-
-    // Uploads renderer's global const buffer
-    void UploadGlobalConst(GlobalBuffer* globalConst);
+    static ComPtr<ID3D11Device>& GetDevice();
+    static ComPtr<ID3D11DeviceContext>& GetDeviceContext();
 
     // thinking of..
     void AddPSO();
@@ -71,8 +49,11 @@ private:
     Graphics(const Graphics&) = delete;
     Graphics& operator=(const Graphics&) = delete;
 
-    // Set shader's global const buffer 
-    void SetGlobalConstantBuffers();
+    // Implementations of static functions
+    bool _Init(HWND hWnd, const int screenWidth, const int screenHeight);
+    bool _InitD3D(const int screenWidth, const int screenHeight);
+
+    void _RenderScene(Scene* scene);
 
 private:
     HWND m_window;
@@ -104,13 +85,9 @@ private:
 
     D3D11_VIEWPORT m_screenViewport;
 
-    //GlobalBuffer m_globalConstBufferCPU; 
-    ComPtr<ID3D11Buffer> m_globalConstBufferGPU;
-
     // Tone Mapping
     Geometry* m_copySquare = nullptr; // square mesh for copy
     ComPtr<ID3D11RasterizerState> m_toneState;
 
     bool m_wireRendering = false;
-
 };

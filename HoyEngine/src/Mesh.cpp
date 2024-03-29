@@ -7,42 +7,50 @@ using DirectX::SimpleMath::Vector2;
 using DirectX::SimpleMath::Matrix;
 using DirectX::BoundingSphere;
 
-void Mesh::CreateBuffers(ComPtr<ID3D11Device>& device)
+Mesh::Mesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
+    : m_vertexBuffer(vertices), m_indexBuffer(indices)
 {
-    Util::CreateVertexBuffer(device, m_vertices, m_vertexBuffer);
-    Util::CreateIndexBuffer(device, m_indices, m_indexBuffer);
-    Util::CreateConstantBuffer(device, m_modelBufferCPU, m_modelBufferGPU);
-    Util::CreateConstantBuffer(device, m_meshMapInfoBufferCPU, m_meshMapInfoBufferGPU);
+    m_indexCount = (UINT)indices.size();
+
+    m_meshMapInfoBuffer = ConstantBuffer<TextureStatus>(VERTEX_SHADER | PIXEL_SHADER, 1);
+}
+
+void Mesh::Init(ComPtr<ID3D11Device>& device)
+{
+    m_meshMapInfoBuffer.GetData().hasAlbedoMap = !m_diffuseFilename.empty();
+    m_meshMapInfoBuffer.GetData().hasNormalMap = !m_normalFilename.empty();
+    m_meshMapInfoBuffer.GetData().hasHeightMap = !m_heightFilename.empty();
+
+    LoadTextures(device);
+
+    m_vertexBuffer.Init(device);
+    m_indexBuffer.Init(device);
+    m_meshMapInfoBuffer.Init(device);
 }
 
 void Mesh::UpdateBuffer(ComPtr<ID3D11DeviceContext>& context)
 {
-    Util::UpdateConstantBuffer(context, m_modelBufferCPU, m_modelBufferGPU);
-    Util::UpdateConstantBuffer(context, m_meshMapInfoBufferCPU, m_meshMapInfoBufferGPU);
+    m_meshMapInfoBuffer.Update(context);
 }
 
 void Mesh::Render(ComPtr<ID3D11DeviceContext>& context)
 {
-    ID3D11Buffer* buffers[] = { m_modelBufferGPU.Get(), m_meshMapInfoBufferGPU.Get() };
-    context->VSSetConstantBuffers(0, 2, buffers);
-    context->PSSetConstantBuffers(0, 2, buffers);
+    m_meshMapInfoBuffer.Bind(context);
 
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
-    context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-    context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+    context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetBuffer().GetAddressOf(), &stride, &offset);
+    context->IASetIndexBuffer(m_indexBuffer.GetBuffer().Get(), DXGI_FORMAT_R32_UINT, 0);
     context->DrawIndexed(m_indexCount, 0, 0);
 }
 
 void Mesh::RenderNormal(ComPtr<ID3D11DeviceContext>& context)
 {
-    context->VSSetConstantBuffers(0, 1, m_modelBufferGPU.GetAddressOf());
-
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
-    context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+    context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetBuffer().GetAddressOf(), &stride, &offset);
     //context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-    context->Draw(UINT(m_vertices.size()), 0);
+    context->Draw(UINT(m_vertexBuffer.GetData().size()), 0);
 }
 
 void Mesh::CopySquareRenderSetup(ComPtr<ID3D11DeviceContext>& context)
@@ -50,27 +58,10 @@ void Mesh::CopySquareRenderSetup(ComPtr<ID3D11DeviceContext>& context)
     // PS SET CONSTANT ( ex) gamma )
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
-    context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-    context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+    context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetBuffer().GetAddressOf(), &stride, &offset);
+    context->IASetIndexBuffer(m_indexBuffer.GetBuffer().Get(), DXGI_FORMAT_R32_UINT, 0);
 
     context->DrawIndexed(m_indexCount, 0, 0);
-}
-
-
-DirectX::SimpleMath::Matrix Mesh::GetWorldMatrix()
-{
-    return m_modelBufferCPU.world.Transpose();
-}
-
-
-void Mesh::UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow)
-{
-    Matrix worldColumn = worldRow.Transpose();
-    m_modelBufferCPU.world = worldColumn;
-
-    m_modelBufferCPU.worldIT = worldColumn;
-    m_modelBufferCPU.worldIT.Translation(Vector3(0.0f));
-    m_modelBufferCPU.worldIT.Invert().Transpose();
 }
 
 void Mesh::LoadDDSTexture(ComPtr<ID3D11Device>& device, const wstring filepath)
@@ -88,7 +79,7 @@ void Mesh::LoadTexture(ComPtr<ID3D11Device>& device, const std::string filepath,
 
 void Mesh::LoadTextures(ComPtr<ID3D11Device>& device)
 {
-    if (m_meshMapInfoBufferCPU.hasAlbedoMap)
+    if (m_meshMapInfoBuffer.GetData().hasAlbedoMap)
     {
         cout << "Loading diffuse map...: ";
         TextureLoader::CreateTextureFromImage(device, m_diffuseFilename, m_diffuseSRV, true);
@@ -97,7 +88,7 @@ void Mesh::LoadTextures(ComPtr<ID3D11Device>& device)
     {
         cout << "No diffuse map" << endl;
     }
-    if (m_meshMapInfoBufferCPU.hasNormalMap)
+    if (m_meshMapInfoBuffer.GetData().hasNormalMap)
     {
         cout << "Loading normal map...: ";
         TextureLoader::CreateTextureFromImage(device, m_normalFilename, m_normalSRV, false);
@@ -106,7 +97,7 @@ void Mesh::LoadTextures(ComPtr<ID3D11Device>& device)
     {
         cout << "No normal map" << endl;
     }
-    if (m_meshMapInfoBufferCPU.hasHeightMap)
+    if (m_meshMapInfoBuffer.GetData().hasHeightMap)
     {
         cout << "Loading height map...: ";
         TextureLoader::CreateTextureFromImage(device, m_heightFilename, m_heightSRV, false);

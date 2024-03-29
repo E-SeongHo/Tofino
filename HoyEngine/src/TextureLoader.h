@@ -8,9 +8,7 @@
 #include <directxtk/WICTextureLoader.h>
 #include <string>
 #include <vector>
-
-#include "Util.h"
-
+#include "Helper.h"
 
 namespace TextureLoader
 {

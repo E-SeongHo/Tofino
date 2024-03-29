@@ -1,5 +1,5 @@
 #include "ShaderLoader.h"
-
+#include "Helper.h"
 // Note : CreateInputLayout requires the vertex shader in addition to the vertex input layout.
 // because it cross checks the two to make sure the given vertex layout(parameter로 전달된) contains all the information 
 // vertex shader asks for.

@@ -35,11 +35,15 @@ public:
 	//Transform& GetTransform(); 
 	void SetLocation(DirectX::SimpleMath::Vector3 location);
 	
-	void SetRotation(DirectX::SimpleMath::Vector3 rotation); // XYZ rotation order
+	// Sets XYZ rotation order
+	void SetRotation(DirectX::SimpleMath::Vector3 rotation); 
 	
 	void SetScale(DirectX::SimpleMath::Vector3 scale);
 
 	virtual void Update(float deltaTime);
+
+	// Gets const buffer of the object
+	ConstantBuffer<ModelBuffer>& GetConstBuffer();
 
 	void UpdateBuffer(ComPtr<ID3D11DeviceContext>& context);
 	
@@ -54,23 +58,15 @@ public:
 	void AttachNormalTexture(std::string filename, int partNumber = 0);
 	void AttachHeightTexture(std::string filename, int partNumber = 0);
 
-	//virtual void Update(float deltaTime);
-
-	// Gets const buffer of the object
-	//ConstantBuffer<ModelBuffer> GetConstBuffer();
-
-private:
-	ConstantBuffer<ModelBuffer> m_constBuffer;
-
-protected:
-	ComPtr<ID3D11Buffer> m_modelBufferGPU;
-
 public:
 	Transform m_transform; 
 	std::string m_name;
 
-	ModelBuffer m_modelBufferCPU;
 	std::vector<Mesh> m_meshes;
 	
 	bool m_updateFlag = false;
+
+private:
+	ConstantBuffer<ModelBuffer> m_constBuffer;
+
 };

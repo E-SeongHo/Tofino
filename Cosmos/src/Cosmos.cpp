@@ -72,13 +72,6 @@ void Cosmos::DesignScenes()
     light->coefficient = 2.2f;
     m_scene->AddLight(light);
 
-    GlobalBuffer* sceneGlobal = new GlobalBuffer();
-    sceneGlobal->view = cam->GetViewMatrix().Transpose();
-    sceneGlobal->projection = cam->GetProjectionMatrix().Transpose();
-    sceneGlobal->eye = cam->GetOrigin();
-    sceneGlobal->light = *light;
-    m_scene->AddSceneBuffer(sceneGlobal);
-
 }
 
 void Cosmos::Update(float deltaTime)
@@ -145,16 +138,16 @@ void Cosmos::RenderGUI()
                     object->SetScale(object->m_transform.Scale);
                     updateFlag++;
                 }
-                if (!object->m_modelBufferCPU.activeAlbedoMap)
+                if (!object->GetConstBuffer().GetData().activeAlbedoMap)
                 {
-                    updateFlag += ImGui::ColorPicker4("Albedo", &object->m_modelBufferCPU.material.albedo.x, flags, NULL);
+                    updateFlag += ImGui::ColorPicker4("Albedo", &object->GetConstBuffer().GetData().material.albedo.x, flags, NULL);
                 }
-                updateFlag += ImGui::SliderFloat("Roughness", &object->m_modelBufferCPU.material.roughness, 0.0f, 1.0f);
-                updateFlag += ImGui::SliderFloat("Metaillic", &object->m_modelBufferCPU.material.metallic, 0.0f, 1.0f);
+                updateFlag += ImGui::SliderFloat("Roughness", &object->GetConstBuffer().GetData().material.roughness, 0.0f, 1.0f);
+                updateFlag += ImGui::SliderFloat("Metaillic", &object->GetConstBuffer().GetData().material.metallic, 0.0f, 1.0f);
 
-                updateFlag += ImGui::CheckboxFlags("Albedo Map", &object->m_modelBufferCPU.activeAlbedoMap, 1);
-                updateFlag += ImGui::CheckboxFlags("Height Map", &object->m_modelBufferCPU.activeHeightMap, 1);
-                updateFlag += ImGui::CheckboxFlags("Normal Map", &object->m_modelBufferCPU.activeNormalMap, 1);
+                updateFlag += ImGui::CheckboxFlags("Albedo Map", &object->GetConstBuffer().GetData().activeAlbedoMap, 1);
+                updateFlag += ImGui::CheckboxFlags("Height Map", &object->GetConstBuffer().GetData().activeHeightMap, 1);
+                updateFlag += ImGui::CheckboxFlags("Normal Map", &object->GetConstBuffer().GetData().activeNormalMap, 1);
 
                 if (updateFlag) object->m_updateFlag = true;
 

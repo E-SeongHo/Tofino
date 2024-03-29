@@ -17,20 +17,22 @@ using DirectX::BoundingSphere;
 
 void Triangle::LoadGeometry(const float scale)
 {
-    Mesh mesh;
-    
-    mesh.m_vertices.push_back(Vertex{ Vector3{ -1.0f, -1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
-    mesh.m_vertices.push_back(Vertex{ Vector3{ 0.0f, 1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
-    mesh.m_vertices.push_back(Vertex{ Vector3{ 1.0f, -1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
+    vector<Vertex> vertices;
+    vector<uint32_t> indices;
 
-    mesh.m_indices = { 0, 1, 2 };
+    vertices.push_back(Vertex{ Vector3{ -1.0f, -1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
+    vertices.push_back(Vertex{ Vector3{ 0.0f, 1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
+    vertices.push_back(Vertex{ Vector3{ 1.0f, -1.0f, 1.0f }, Vector3{ 1.0f, 0.0f, 0.0f } });
 
-    m_meshes.push_back(mesh);
+    indices = { 0, 1, 2 };
+
+    m_meshes.push_back(Mesh(vertices, indices));
 }
 
 void Square::LoadGeometry(const float scale)
 {
-    Mesh mesh;
+    vector<Vertex> vertices;
+    vector<uint32_t> indices;
 
     vector<Vector3> positions;
     vector<Vector3> colors;
@@ -63,16 +65,18 @@ void Square::LoadGeometry(const float scale)
         v.normal = normals[i];
         v.uv = texcoords[i];
 
-        mesh.m_vertices.push_back(v);
+        vertices.push_back(v);
     }
-    mesh.m_indices = { 0, 1, 2, 0, 2, 3, };
+    indices = { 0, 1, 2, 0, 2, 3, };
 
-    m_meshes.push_back(mesh);
+    m_meshes.push_back(Mesh(vertices, indices));
 }
 
 void Cube::LoadGeometry(const float scale)
 {
-    Mesh mesh;
+    vector<Vertex> vertices;
+    vector<uint32_t> indices;
+
     vector<Vector3> positions;
     vector<Vector3> colors;
     vector<Vector3> normals;
@@ -194,10 +198,10 @@ void Cube::LoadGeometry(const float scale)
         v.normal = normals[i];
         v.uv = texcoords[i];
 
-        mesh.m_vertices.push_back(v);
+        vertices.push_back(v);
     }
 
-    mesh.m_indices = 
+    indices = 
     {
         0,  1,  2,  0,  2,  3,  // À­¸é
         4,  5,  6,  4,  6,  7,  // ¾Æ·§¸é
@@ -207,7 +211,7 @@ void Cube::LoadGeometry(const float scale)
         20, 21, 22, 20, 22, 23  // ¿À¸¥ÂÊ
     };
 
-    m_meshes.push_back(mesh);
+    m_meshes.push_back(Mesh(vertices, indices));
 
     m_boundingSphere = BoundingSphere(Vector3(0.0f, 0.0f, 0.0f), scale / 2.0f);
 }
@@ -217,7 +221,9 @@ void Sphere::LoadGeometry(const float scale)
     // https://www.songho.ca/opengl/gl_sphere.html
     using namespace DirectX;
 
-    Mesh mesh;
+    vector<Vertex> vertices;
+    vector<uint32_t> indices;
+
     vector<Vector3> positions;
     vector<Vector3> colors;
     vector<Vector3> normals;
@@ -271,7 +277,7 @@ void Sphere::LoadGeometry(const float scale)
         v.uv = texcoords[i];
         v.tangent = tangents[i];
 
-        mesh.m_vertices.push_back(v);
+        vertices.push_back(v);
     }
 
     for (int i = 0; i < stackCount; ++i)
@@ -280,17 +286,17 @@ void Sphere::LoadGeometry(const float scale)
         
         for (int j = 0; j < sectorCount; ++j)
         {
-            mesh.m_indices.push_back(offset + j);
-            mesh.m_indices.push_back(offset + j + 1);
-            mesh.m_indices.push_back(offset + j + sectorCount + 1);
+            indices.push_back(offset + j);
+            indices.push_back(offset + j + 1);
+            indices.push_back(offset + j + sectorCount + 1);
             
-            mesh.m_indices.push_back(offset + j + 1);
-            mesh.m_indices.push_back(offset + j + 1 + sectorCount + 1);
-            mesh.m_indices.push_back(offset + j + sectorCount + 1);
+            indices.push_back(offset + j + 1);
+            indices.push_back(offset + j + 1 + sectorCount + 1);
+            indices.push_back(offset + j + sectorCount + 1);
         }
     }
 
-    m_meshes.push_back(mesh);
+    m_meshes.push_back(Mesh(vertices, indices));
 
     m_boundingSphere = BoundingSphere(Vector3(0.0f, 0.0f, 0.0f), radius);
 }

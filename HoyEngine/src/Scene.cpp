@@ -2,6 +2,12 @@
 #include "Scene.h"
 #include "Graphics.h"
 
+#include <iostream>
+
+Scene::Scene()
+{
+	m_constBuffer = ConstantBuffer<GlobalBuffer>(VERTEX_SHADER | GEOMETRY_SHADER | PIXEL_SHADER, 10); 
+}
 
 Scene::~Scene()
 {
@@ -38,7 +44,7 @@ Scene::~Scene()
 
 void Scene::BindUpdateFunction(std::function<void(float)> updateFn)
 {
-	Fn_Update= updateFn;
+	Fn_Update = updateFn;
 }
 
 void Scene::SetName(std::string name)
@@ -48,34 +54,50 @@ void Scene::SetName(std::string name)
 
 void Scene::SetCamera(Camera* camera)
 {
+	GlobalBuffer& sceneConst = m_constBuffer.GetData();
+	sceneConst.eye = camera->GetOrigin();
+	sceneConst.view = camera->GetViewMatrix().Transpose();
+	sceneConst.projection = camera->GetProjectionMatrix().Transpose();
+
+	if (m_camera == nullptr)
+	{
+		m_constBuffer.Init(Graphics::GetDevice());
+	}
+	else
+	{
+		m_constBuffer.Update(Graphics::GetDeviceContext());
+	}
+
 	m_camera = camera;
 }
 
 void Scene::AddLight(Light* light)
 {
 	m_lights.push_back(light);
+
+	m_constBuffer.GetData().light = *light; // temp
 }
 
 void Scene::AddObject(Object* object)
 {
 	m_objects.push_back(object);
-	RendererInstance.InitObject(object);
+	object->Init(Graphics::GetDevice());
 }
 
 void Scene::AddSkybox(EnvMap* skybox)
 {
 	m_skybox = skybox;
-	RendererInstance.InitSkybox(skybox);
-}
-
-void Scene::AddSceneBuffer(GlobalBuffer* sceneConst)
-{
-	m_sceneConstBufferCPU = sceneConst;
-	RendererInstance.InitSceneGlobal(sceneConst);
+	skybox->Init(Graphics::GetDevice());
 }
 
 void Scene::Update(float deltaTime)
 {
+	if (m_camera == nullptr)
+	{
+		std::cout << "Scene does not have a Camera" << std::endl;
+		return; 
+	}
+
 	if(Fn_Update) Fn_Update(deltaTime);
 
 	for (Object* obj : m_objects)
@@ -83,14 +105,16 @@ void Scene::Update(float deltaTime)
 		// obj->Update(deltaTime);
 	}
 
-	m_sceneConstBufferCPU->eye = m_camera->GetOrigin();
-	m_sceneConstBufferCPU->view = m_camera->GetViewMatrix().Transpose();
-	m_sceneConstBufferCPU->projection = m_camera->GetProjectionMatrix().Transpose();
-	RendererInstance.UploadGlobalConst(m_sceneConstBufferCPU);
+	GlobalBuffer& sceneConst = m_constBuffer.GetData();
+	// Updates Scene Buffer every frame
+	sceneConst.eye = m_camera->GetOrigin();
+	sceneConst.view = m_camera->GetViewMatrix().Transpose();
+	sceneConst.projection = m_camera->GetProjectionMatrix().Transpose();
+	m_constBuffer.Update(Graphics::GetDeviceContext());
 
 	for (Object* obj : m_objects)
 	{
-		if (obj->m_updateFlag) obj->UpdateBuffer(RendererInstance.GetDeviceContext());
+		if (obj->m_updateFlag) obj->UpdateBuffer(Graphics::GetDeviceContext());
 	}
 }
 
@@ -109,7 +133,7 @@ EnvMap* Scene::GetSkybox()
 	return m_skybox;
 }
 
-GlobalBuffer* Scene::GetSceneBuffer()
+ConstantBuffer<GlobalBuffer>& Scene::GetSceneConstBuffer()
 {
-	return m_sceneConstBufferCPU;
+	return m_constBuffer;
 }

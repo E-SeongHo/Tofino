@@ -5,8 +5,7 @@
 #include <wrl.h> 
 #include <directxtk/SimpleMath.h>
 
-#include "Util.h"
-#include "Mesh.h"
+#include "Geometry.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -21,7 +20,8 @@ public:
     ~EnvMap();
 
 private:
-    Mesh* m_mesh;
+    Cube m_shape;
+    // Mesh* m_mesh;
     std::string m_name;
     std::wstring m_filepath;
 

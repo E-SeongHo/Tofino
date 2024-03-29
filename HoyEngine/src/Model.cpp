@@ -15,7 +15,7 @@ void Model::LoadModel(const std::string& filename, const float scale)
 {
 	cout << "Loading model... " << filename << endl;
 
-	int idx = filename.rfind("/");
+	size_t idx = filename.rfind("/");
 	m_directory = filename.substr(0, idx + 1);
 
 	Assimp::Importer importer;
@@ -110,7 +110,7 @@ void Model::NormalizeVertices(const float scale)
 
 	for (auto& mesh : m_meshes)
 	{
-		for (auto& v : mesh.m_vertices)
+		for (auto& v : mesh.m_vertexBuffer.GetData())
 		{
 			vmin.x = XMMin(vmin.x, v.pos.x);
 			vmin.y = XMMin(vmin.y, v.pos.y);
@@ -128,7 +128,7 @@ void Model::NormalizeVertices(const float scale)
 
 	for (auto& mesh : m_meshes)
 	{
-		for (auto& v : mesh.m_vertices)
+		for (auto& v : mesh.m_vertexBuffer.GetData())
 		{
 			v.pos.x = ((v.pos.x - cx) / dl) * scale;
 			v.pos.y = ((v.pos.y - cy) / dl) * scale;
@@ -200,10 +200,37 @@ void Model::LoadMesh(aiMesh* mesh, const aiScene* scene)
 		}
 	}
 
-	Mesh newMesh;
-	newMesh.m_vertices = vertices;
-	newMesh.m_indices = indices;
+	// Compute Tangent Frame
+	vector<DirectX::XMFLOAT3> positions(vertices.size());
+	vector<DirectX::XMFLOAT3> normals(vertices.size());
+	vector<DirectX::XMFLOAT2> texcoords(vertices.size());
+	vector<DirectX::XMFLOAT4> tangents(vertices.size());
 
+	for (size_t i = 0; i < vertices.size(); i++)
+	{
+		Vertex& vertex = vertices[i];
+		positions[i] = vertex.pos;
+		normals[i] = vertex.normal;
+		texcoords[i] = vertex.uv;
+	}
+
+	DirectX::ComputeTangentFrame(indices.data(), indices.size() / 3,
+		positions.data(), normals.data(), texcoords.data(), vertices.size(), tangents.data());
+
+	for (size_t i = 0; i < vertices.size(); i++)
+	{
+		//cout << "check tangent w : " << tangents[i].w << endl;
+		vertices[i].tangent.x = tangents[i].x;
+		vertices[i].tangent.y = tangents[i].y;
+		vertices[i].tangent.z = tangents[i].z;
+		/*cout << newMesh.m_vertices[i].tangent.x << " " << newMesh.m_vertices[i].tangent.y << 
+			" " << newMesh.m_vertices[i].tangent.z << endl;*/
+	}
+
+	m_meshes.push_back(Mesh(vertices, indices));
+	Mesh& newMesh = m_meshes.back();
+
+	// Textures TODO : Material owns textures
 	if (mesh->mMaterialIndex >= 0)
 	{
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
@@ -229,7 +256,7 @@ void Model::LoadMesh(aiMesh* mesh, const aiScene* scene)
 			aiString path;
 			material->GetTexture(aiTextureType_NORMALS, 0, &path);
 
-			int idx = string(path.data).rfind("\\");
+			size_t idx = string(path.data).rfind("\\");
 			string filename = string(path.data).substr(idx + 1);
 
 			newMesh.m_normalFilename = m_directory + filename;
@@ -245,7 +272,7 @@ void Model::LoadMesh(aiMesh* mesh, const aiScene* scene)
 			aiString path;
 			material->GetTexture(aiTextureType_HEIGHT, 0, &path);
 
-			int idx = string(path.data).rfind("\\");
+			size_t idx = string(path.data).rfind("\\");
 			string filename = string(path.data).substr(idx + 1);
 
 			newMesh.m_heightFilename = m_directory + filename;
@@ -255,36 +282,7 @@ void Model::LoadMesh(aiMesh* mesh, const aiScene* scene)
 		{
 			cout << "No height texture: " << m_directory << endl;
 		}
-
 	}
 
-	// Compute Tangent Frame
-	vector<DirectX::XMFLOAT3> positions(newMesh.m_vertices.size());
-	vector<DirectX::XMFLOAT3> normals(newMesh.m_vertices.size());
-	vector<DirectX::XMFLOAT2> texcoords(newMesh.m_vertices.size());
-	vector<DirectX::XMFLOAT4> tangents(newMesh.m_vertices.size());
-
-	for (size_t i = 0; i < newMesh.m_vertices.size(); i++)
-	{
-		Vertex& vertex = newMesh.m_vertices[i];
-		positions[i] = vertex.pos;
-		normals[i] = vertex.normal;
-		texcoords[i] = vertex.uv;
-	}
-
-	DirectX::ComputeTangentFrame(newMesh.m_indices.data(), newMesh.m_indices.size() / 3, 
-		positions.data(), normals.data(), texcoords.data(), newMesh.m_vertices.size(), tangents.data());
-
-	for (size_t i = 0; i < newMesh.m_vertices.size(); i++)
-	{
-		//cout << "check tangent w : " << tangents[i].w << endl;
-		newMesh.m_vertices[i].tangent.x = tangents[i].x;
-		newMesh.m_vertices[i].tangent.y = tangents[i].y;
-		newMesh.m_vertices[i].tangent.z = tangents[i].z;
-		/*cout << newMesh.m_vertices[i].tangent.x << " " << newMesh.m_vertices[i].tangent.y << 
-			" " << newMesh.m_vertices[i].tangent.z << endl;*/
-	}
-
-	m_meshes.push_back(newMesh);
 }
 
