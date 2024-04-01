@@ -15,19 +15,23 @@ cbuffer ModelConstBuffer : register(b0)
 {
 	matrix world;
 	matrix worldIT;
-	Material material;
 	int activeAlbedoMap;
 	int activeNormalMap;
 	int activeHeightMap;
 	int padding;
 };
 
-cbuffer MappingInfoBuffer : register(b1)
+cbuffer MaterialStatus : register(b1)
 {
+    float4 baseColor;
+    float roughness;
+    float metallic;
+    float2 padding2;
+	
 	int hasAlbedoMap;
 	int hasNormalMap;
 	int hasHeightMap;
-	int padding2;
+	int padding3;
 }
 
 struct PSInput
@@ -56,11 +60,11 @@ float3 TBNTransform(PSInput input)
 float4 main(PSInput input) : SV_TARGET
 {
 	float4 albedo = hasAlbedoMap && activeAlbedoMap ? diffuseTexture.Sample(g_sampler, input.uv) 
-		: material.albedo;
+		: baseColor;
 
 	float3 N = hasNormalMap && activeNormalMap ? TBNTransform(input) : input.normal;
 	float3 L = normalize(-light.direction); // directional light
-	float3 V = normalize(eye - input.pos); // vector to eye from pixel
+    float3 V = normalize(eye - input.pos.xyz); // vector to eye from pixel
 	
 	float NdotL = max(0.0f, dot(N, L));
 
@@ -70,25 +74,25 @@ float4 main(PSInput input) : SV_TARGET
 	// direct lighting
 	float lighting = HdotN * light.strength; 
 
-	float3 diffuse = material.roughness;
-	float3 specular = material.metallic * pow(HdotN, light.coefficient);
+	float3 diffuse = roughness;
+	float3 specular = metallic * pow(HdotN, light.coefficient);
 
 	float3 color = albedo.rgb + float3((diffuse + specular) * lighting);
 
 	// ambient lighting (IBL)
 	float3 irradiance = envIrradianceTexture.Sample(g_sampler, input.normal).rgb;
-	float3 diffuseIBL = material.roughness * irradiance;
+	float3 diffuseIBL = roughness * irradiance;
 
 	float costheta = dot(input.normal, V);
-	float2 brdf = envBrdfLookUpTexture.Sample(g_clampSampler, float2(costheta, 1.0f - material.roughness)); // 1 - roughness for IBL baker
+	float2 brdf = envBrdfLookUpTexture.Sample(g_clampSampler, float2(costheta, 1.0f - roughness)); // 1 - roughness for IBL baker
 	float3 sampled = envSpecularTexture.Sample(g_sampler, input.normal).rgb;
 
-	float3 specularIBL = material.metallic * (brdf.x + brdf.y) * sampled;
+	float3 specularIBL = metallic * (brdf.x + brdf.y) * sampled;
 
 	float3 ambientLighting = diffuseIBL + specularIBL;
 
 	color += ambientLighting;
-	//color = clamp(color, 0.0f, 1000.0f);
+	color = clamp(color, 0.0f, 1000.0f);
 
 	return float4(color, 1.0f);
 }

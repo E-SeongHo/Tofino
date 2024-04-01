@@ -7,14 +7,6 @@ struct Light
 	float coefficient;
 };
 
-struct Material
-{
-	float4 albedo;
-	float roughness;
-	float metallic;
-	float2 padding;
-};
-
 cbuffer GlobalConstants : register(b10)
 {
     matrix view;

@@ -6,8 +6,9 @@
 #include <DirectXCollision.h>
 
 #include "Graphics.h"
-#include "Geometry.h"
 #include "EnvMap.h"
+#include "Scene.h"
+#include "ShaderManager.h"
 
 // using Microsoft::WRL::ComPtr;
 using namespace std;
@@ -299,7 +300,7 @@ void Graphics::_RenderScene(Scene* scene)
     m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     scene->GetSceneConstBuffer().Bind(m_context);
-    scene->GetSkybox()->SetIBLSRVs(m_context); // for objects
+    scene->GetSkybox()->BindIBLSRVs(m_context); // for objects
 
     //sphere->SetSRVs(m_context);
     //sphere->Render(m_context);
@@ -354,7 +355,11 @@ void Graphics::_RenderScene(Scene* scene)
     m_context->PSSetShaderResources(0, 1, m_hdrResolvedSRV.GetAddressOf());
 
     m_copySquare->GetConstBuffer().Bind(m_context);
-    m_copySquare->m_meshes[0].Render(m_context);
+    UINT stride = sizeof(Vertex);
+    UINT offset = 0;
+    m_context->IASetVertexBuffers(0, 1, m_copySquare->m_meshes[0].m_vertexBuffer.GetBuffer().GetAddressOf(), &stride, &offset);
+    m_context->IASetIndexBuffer(m_copySquare->m_meshes[0].m_indexBuffer.GetBuffer().Get(), DXGI_FORMAT_R32_UINT, 0);
+    m_context->DrawIndexed(m_copySquare->m_meshes[0].m_indexCount, 0, 0);
 }
 
 Graphics::~Graphics()

@@ -1,7 +1,8 @@
 #include <DirectXMesh.h>
 
 #include "Model.h"
-#include "TextureLoader.h"
+#include "Texture.h"
+#include "Graphics.h"
 
 using DirectX::SimpleMath::Matrix;
 using DirectX::SimpleMath::Vector3;
@@ -13,7 +14,7 @@ Model::Model(const std::string name, const bool isHittable) : Object(name, isHit
 
 void Model::LoadModel(const std::string& filename, const float scale)
 {
-	cout << "Loading model... " << filename << endl;
+	cout << "Loading model..." <<  m_name << " " << filename << endl;
 
 	size_t idx = filename.rfind("/");
 	m_directory = filename.substr(0, idx + 1);
@@ -31,75 +32,18 @@ void Model::LoadModel(const std::string& filename, const float scale)
     Matrix tr; // Initial transformation
 	LoadNode(scene->mRootNode, scene, tr);
 
-	cout << "Total meshes : " << m_meshes.size() << endl;
+	cout << m_name << " Total meshes : " << m_meshes.size() << endl;
+	for (int i = 0; i < m_meshes.size(); i++)
+	{
+		auto& mat = m_meshes[i].GetMaterial();
+		cout << "Mesh[ " << i << " ]" << endl;
+		cout << "albedo map : " << mat.GetMaterialStatus().hasAlbedoMap << endl;
+		cout << "normal map : " << mat.GetMaterialStatus().hasNormalMap<< endl;
+		cout << "height map : " << mat.GetMaterialStatus().hasHeightMap << endl;
+	}
 
 	NormalizeVertices(scale);
 }
-
-//void Model::Init(ComPtr<ID3D11Device>& device, const float scale, const bool isHittable)
-//{	// Load Textures, Create Buffers
-//
-//	// for just make one shared constant buffer instead of same different constant buffers for every mesh
-//	m_modelBufferCPU.world = Matrix();
-//	Util::CreateConstantBuffer(device, m_modelBufferCPU, m_modelBufferGPU);
-//
-//	for (auto& mesh : m_meshes)
-//	{
-//		// Textures
-//		mesh.m_meshMapInfoBufferCPU.hasAlbedoMap = !mesh.m_diffuseFilename.empty();
-//		mesh.m_meshMapInfoBufferCPU.hasNormalMap = !mesh.m_normalFilename.empty();
-//		mesh.m_meshMapInfoBufferCPU.hasHeightMap = !mesh.m_heightFilename.empty();
-//
-//		mesh.LoadTextures(device);
-//
-//		// Create Buffers
-//		mesh.m_indexCount = (UINT)mesh.m_indices.size();
-//		mesh.m_modelBufferCPU.world = Matrix();
-//		
-//		// mesh.CreateBuffers(device);
-//		Util::CreateVertexBuffer(device, mesh.m_vertices, mesh.m_vertexBuffer);
-//		Util::CreateIndexBuffer(device, mesh.m_indices, mesh.m_indexBuffer);
-//		mesh.m_modelBufferGPU = m_modelBufferGPU; // sharing resource
-//		Util::CreateConstantBuffer(device, mesh.m_meshMapInfoBufferCPU, mesh.m_meshMapInfoBufferGPU);
-//	}
-//	
-//}
-
-//void Model::Render(ComPtr<ID3D11DeviceContext>& context)
-//{
-//	for (auto& mesh : m_meshes)
-//	{
-//		mesh.SetSRVs(context);
-//		mesh.Render(context);
-//	}
-//}
-//
-//void Model::RenderNormal(ComPtr<ID3D11DeviceContext>& context)
-//{
-//	for (auto& mesh : m_meshes)
-//	{
-//		mesh.RenderNormal(context);
-//	}
-//}
-//
-//DirectX::SimpleMath::Matrix Model::GetWorldMatrix()
-//{
-//	return m_modelBufferCPU.world.Transpose();
-//}
-//
-//void Model::UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow)
-//{
-//	Matrix worldColumn = worldRow.Transpose();
-//	m_modelBufferCPU.world = worldColumn;
-//	m_modelBufferCPU.worldIT = worldColumn;
-//	m_modelBufferCPU.worldIT.Translation(Vector3(0.0f));
-//	m_modelBufferCPU.worldIT.Invert().Transpose();
-//}
-//
-//void Model::UpdateBuffer(ComPtr<ID3D11DeviceContext>& context)
-//{
-//	Util::UpdateConstantBuffer(context, m_modelBufferCPU, m_modelBufferGPU);
-//}
 
 void Model::NormalizeVertices(const float scale)
 {
@@ -230,21 +174,29 @@ void Model::LoadMesh(aiMesh* mesh, const aiScene* scene)
 	m_meshes.push_back(Mesh(vertices, indices));
 	Mesh& newMesh = m_meshes.back();
 
-	// Textures TODO : Material owns textures
 	if (mesh->mMaterialIndex >= 0)
 	{
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+		Material& meshMat = newMesh.m_material;
 
 		if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0) 
 		{
 			aiString path;
-			material->GetTexture(aiTextureType_DIFFUSE, 0, &path);
+			if (material->GetTexture(aiTextureType_DIFFUSE, 0, &path) == aiReturn_SUCCESS)
+			{
+				int idx = string(path.data).rfind("\\");
+				string filename = string(path.data).substr(idx + 1);
+				
+				cout << "Found diffuse texture: " << filename << endl;
 
-			int idx = string(path.data).rfind("\\");
-			string filename = string(path.data).substr(idx + 1);
+				Texture texture(Graphics::GetDevice(), m_directory + filename, TextureType::ALBEDO);
+				meshMat.SetAlbedoMap(texture);
 
-			newMesh.m_diffuseFilename = m_directory + filename;
-			cout << "Found diffuse texture: " << filename << endl;
+			}
+			else
+			{
+				cout << "invalid diffuse texture path" << endl;
+			}
 		}
 		else
 		{
@@ -254,13 +206,21 @@ void Model::LoadMesh(aiMesh* mesh, const aiScene* scene)
 		if (material->GetTextureCount(aiTextureType_NORMALS) > 0)
 		{
 			aiString path;
-			material->GetTexture(aiTextureType_NORMALS, 0, &path);
+			if (material->GetTexture(aiTextureType_NORMALS, 0, &path) == aiReturn_SUCCESS)
+			{
+				size_t idx = string(path.data).rfind("\\");
+				string filename = string(path.data).substr(idx + 1);
 
-			size_t idx = string(path.data).rfind("\\");
-			string filename = string(path.data).substr(idx + 1);
+				cout << "Found normal texture: " << filename << endl;
 
-			newMesh.m_normalFilename = m_directory + filename;
-			cout << "Found normal texture: " << filename << endl;
+				Texture texture(Graphics::GetDevice(), m_directory + filename, TextureType::NORMAL);
+				meshMat.SetNormalMap(texture);
+
+			}
+			else
+			{
+				cout << "invalid diffuse texture path" << endl;
+			}
 		}
 		else
 		{
@@ -270,13 +230,20 @@ void Model::LoadMesh(aiMesh* mesh, const aiScene* scene)
 		if (material->GetTextureCount(aiTextureType_HEIGHT) > 0)
 		{
 			aiString path;
-			material->GetTexture(aiTextureType_HEIGHT, 0, &path);
+			if (material->GetTexture(aiTextureType_HEIGHT, 0, &path) == aiReturn_SUCCESS)
+			{
+				size_t idx = string(path.data).rfind("\\");
+				string filename = string(path.data).substr(idx + 1);
+				
+				cout << "Found height texture: " << filename << endl;
 
-			size_t idx = string(path.data).rfind("\\");
-			string filename = string(path.data).substr(idx + 1);
-
-			newMesh.m_heightFilename = m_directory + filename;
-			cout << "Found height texture: " << filename << endl;
+				Texture texture(Graphics::GetDevice(), m_directory + filename, TextureType::HEIGHT);
+				meshMat.SetHeightMap(texture);
+			}
+			else
+			{
+				cout << "invalid diffuse texture path" << endl;
+			}
 		}
 		else
 		{

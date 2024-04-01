@@ -28,6 +28,7 @@ bool Cosmos::Init()
     SetCurrentScene(m_scene);
     return true;
 }
+
 void Cosmos::DesignScenes()
 {
     Camera* cam = new Camera();
@@ -35,42 +36,82 @@ void Cosmos::DesignScenes()
 
     m_scene->SetCamera(cam);
 
-    Geometry* sphere = new Sphere("Test Sphere", true);
-    sphere->LoadGeometry();
-    const string texDirectory = "./Assets/Texture/wet-mossy-rocks-ue/";
-    //sphere->AttachAlbedoTexture(texDirectory + "wet-mossy-rocks_albedo.png");
-    //sphere->AttachNormalTexture(texDirectory + "wet-mossy-rocks_normal-dx.png");
-    //sphere->AttachHeightTexture(texDirectory + "wet-mossy-rocks_height.png");
-    sphere->SetMaterials(0.5f, 0.1f);
-    m_scene->AddObject(sphere);
+    {
+        Geometry* sphere = new Sphere("Test Sphere", true);
+        sphere->LoadGeometry();
+        sphere->SetAllMeshMaterialFactors(Vector4(0.0f), 0.1f, 0.5f);
+        m_scene->AddObject(sphere);
+    }
 
-    Model* spaceship = new Model("Space Station", true);
-    spaceship->LoadModel("D:/Workspace/3DModels/sci-fi-space-station/SpaceStation.fbx", 10.0f);
-    spaceship->AttachAlbedoTexture(spaceship->m_directory + "SpaceStationParts2_BaseColor.png", 0);
-    spaceship->SetMaterials(0.1f, 0.7f);
-    m_scene->AddObject(spaceship);
+    {
+        Model* spaceship = new Model("Space Station", true);
+        spaceship->LoadModel("D:/Workspace/3DModels/sci-fi-space-station/SpaceStation.fbx", 10.0f);
 
-    Model* aircraft = new Model("E-45 Aircraft", true);
-    aircraft->LoadModel("D:/Workspace/3DModels/E-45-Aircraft/E 45 Aircraft_obj.obj", 3.0f);
-    aircraft->AttachAlbedoTexture(aircraft->m_directory + "E-45 _col.jpg", 0);
-    aircraft->AttachNormalTexture(aircraft->m_directory + "E-45-nor_1.jpg", 0);
-    aircraft->AttachHeightTexture(aircraft->m_directory + "E-45-nor_1.jpg", 0);
-    aircraft->AttachAlbedoTexture("", 1);
-    aircraft->AttachNormalTexture(aircraft->m_directory + "E-45_glass_nor_.jpg", 1);
-    aircraft->AttachHeightTexture(aircraft->m_directory + "E-45_glass_nor_.jpg", 1);
-    aircraft->SetMaterials(0.1f, 0.5f);
-    m_scene->AddObject(aircraft);
+        // Since Assimp failed to find appropriate textures
+        {
+            Texture bodyAlbedo2(
+                Graphics::GetDevice(),
+                spaceship->m_directory + "SpaceStationParts2_BaseColor.png",
+                TextureType::ALBEDO);
 
-    EnvMap* skybox = new EnvMap("Universe", L"./Assets/Cubemap/HDRI/PlanetaryEarth/");
-    m_scene->AddSkybox(skybox);
+            Texture bodyAlbedo1(
+                Graphics::GetDevice(),
+                spaceship->m_directory + "SpaceStationParts1_BaseColor.png",
+                TextureType::ALBEDO);
 
-    Light* light = new Light();
-    //light->type = LightType::DIRECTIONAL_LIGHT;
-    light->pos = DirectX::SimpleMath::Vector3(-0.3f, 0.2f, -2.0f);
-    light->strength = 0.5f;
-    light->direction = DirectX::SimpleMath::Vector3(0.1f, -0.2f, 1.0f);
-    light->coefficient = 2.2f;
-    m_scene->AddLight(light);
+            spaceship->GetMeshes()[0].GetMaterial().SetAlbedoMap(bodyAlbedo2);
+            spaceship->GetMeshes()[1].GetMaterial().SetAlbedoMap(bodyAlbedo1);
+
+            /*std::vector<Mesh> meshes = spaceship->m_meshes;
+            spaceship->m_meshes.clear();
+            spaceship->m_meshes.push_back(meshes[2]);*/
+        }
+
+        spaceship->SetAllMeshMaterialFactors(Vector4(0.0f), 0.1f, 0.7f);
+        m_scene->AddObject(spaceship);
+    }
+
+    {
+        Model* aircraft = new Model("E-45 Aircraft", true);
+        aircraft->LoadModel("D:/Workspace/3DModels/E-45-Aircraft/E 45 Aircraft_obj.obj", 3.0f);
+        
+        // Since Assimp failed to find appropriate textures
+        {
+            Texture bodyAlbedo(Graphics::GetDevice(), aircraft->m_directory + "E-45 _col.jpg", TextureType::ALBEDO);
+            Texture bodyNormal(Graphics::GetDevice(), aircraft->m_directory + "E-45-nor_1.jpg", TextureType::NORMAL);
+
+            Texture glassNormal(Graphics::GetDevice(), aircraft->m_directory + "E-45_glass_nor_.jpg", TextureType::NORMAL);
+
+            // body
+            aircraft->GetMeshes()[0].GetMaterial().SetAlbedoMap(bodyAlbedo);
+            aircraft->GetMeshes()[0].GetMaterial().SetNormalMap(bodyNormal);
+            aircraft->GetMeshes()[0].GetMaterial().GetMaterialStatus().hasHeightMap = 0;
+
+            // glass
+            aircraft->GetMeshes()[1].GetMaterial().GetMaterialStatus().hasAlbedoMap = 0;
+            aircraft->GetMeshes()[1].GetMaterial().SetNormalMap(glassNormal);
+            aircraft->GetMeshes()[1].GetMaterial().GetMaterialStatus().hasHeightMap = 0;
+        }
+
+        aircraft->SetAllMeshMaterialFactors(Vector4(0.0f), 0.1f, 0.7f);
+        m_scene->AddObject(aircraft);
+    }
+
+    {
+        EnvMap* skybox = new EnvMap("Universe", "./Assets/Cubemap/HDRI/PlanetaryEarth/");
+        m_scene->AddSkybox(skybox);
+    }
+
+    {
+        Light* light = new Light();
+        //light->type = LightType::DIRECTIONAL_LIGHT;
+        light->pos = DirectX::SimpleMath::Vector3(-0.3f, 0.2f, -2.0f);
+        light->strength = 0.5f;
+        light->direction = DirectX::SimpleMath::Vector3(0.1f, -0.2f, 1.0f);
+        light->coefficient = 2.2f;
+        m_scene->AddLight(light);
+    }
+
 
 }
 
@@ -138,19 +179,37 @@ void Cosmos::RenderGUI()
                     object->SetScale(object->m_transform.Scale);
                     updateFlag++;
                 }
-                if (!object->GetConstBuffer().GetData().activeAlbedoMap)
-                {
-                    updateFlag += ImGui::ColorPicker4("Albedo", &object->GetConstBuffer().GetData().material.albedo.x, flags, NULL);
-                }
-                updateFlag += ImGui::SliderFloat("Roughness", &object->GetConstBuffer().GetData().material.roughness, 0.0f, 1.0f);
-                updateFlag += ImGui::SliderFloat("Metaillic", &object->GetConstBuffer().GetData().material.metallic, 0.0f, 1.0f);
-
+                
                 updateFlag += ImGui::CheckboxFlags("Albedo Map", &object->GetConstBuffer().GetData().activeAlbedoMap, 1);
                 updateFlag += ImGui::CheckboxFlags("Height Map", &object->GetConstBuffer().GetData().activeHeightMap, 1);
                 updateFlag += ImGui::CheckboxFlags("Normal Map", &object->GetConstBuffer().GetData().activeNormalMap, 1);
 
                 if (updateFlag) object->m_updateFlag = true;
 
+                vector<Mesh> meshes = object->GetMeshes();
+                for (int i = 0; i < object->GetMeshes().size(); i++)
+                {
+                    int meshUpdateFlag = 0;
+                    if (ImGui::TreeNode((string("Part ") + to_string(i)).c_str()))
+                    {
+                        auto& material = meshes[i].GetMaterial().GetMaterialStatus();
+                        if (!object->GetConstBuffer().GetData().activeAlbedoMap)
+                        {
+                            meshUpdateFlag += ImGui::ColorPicker4("BaseColor", &material.baseColor.x, flags, NULL);
+                        }
+                        meshUpdateFlag += ImGui::SliderFloat("Roughness", &material.roughness, 0.0f, 1.0f);
+                        meshUpdateFlag += ImGui::SliderFloat("Metaillic", &material.metallic, 0.0f, 1.0f);
+                        
+                        ImGui::TreePop();
+                    }
+
+                    if (meshUpdateFlag)
+                    {
+                        meshes[i].m_updateFlag = true;
+                        object->m_updateFlag = true;
+                    }
+
+                }
                 ImGui::TreePop();
             }
         }

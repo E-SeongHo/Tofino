@@ -8,6 +8,19 @@
 #include "Transform.h"
 #include "ConstantBuffer.h"
 
+// 16Byte align
+struct ModelBuffer // Must Store as a Column Matrix 
+{
+	DirectX::SimpleMath::Matrix world;
+	DirectX::SimpleMath::Matrix worldIT;
+
+	// for test 
+	int activeAlbedoMap = 1;
+	int activeNormalMap = 1;
+	int activeHeightMap = 1;
+	int padding;
+};
+
 using Microsoft::WRL::ComPtr;
 
 class Hittable
@@ -49,14 +62,12 @@ public:
 	
 	DirectX::SimpleMath::Matrix GetWorldMatrix();
 	
-	void SetMaterials(const float roughness, const float metallic,
-		const DirectX::SimpleMath::Vector4 albedo = DirectX::SimpleMath::Vector4(0.0f, 0.0f, 0.0f, 1.0f));
-	
-	// Attaching textures manually if model loader failed to find textures
-	// should be called before the Init Function called
-	void AttachAlbedoTexture(std::string filename, int partNumber = 0);
-	void AttachNormalTexture(std::string filename, int partNumber = 0);
-	void AttachHeightTexture(std::string filename, int partNumber = 0);
+	void SetMeshMaterialFactors(
+		const DirectX::SimpleMath::Vector4 baseColor, const float roughness, const float metallic, const int partNumber);
+	void SetAllMeshMaterialFactors(
+		const DirectX::SimpleMath::Vector4 baseColor, const float roughness, const float metallic);
+
+	std::vector<Mesh>& GetMeshes();
 
 public:
 	Transform m_transform; 

@@ -12,23 +12,21 @@ using Microsoft::WRL::ComPtr;
 class EnvMap
 {
 public:
-    EnvMap(const std::string name, const std::wstring filepath);
+    EnvMap(const std::string name, const std::string filepath);
 
     void Init(ComPtr<ID3D11Device>& device);
     void Render(ComPtr<ID3D11DeviceContext>& context);
-    void SetIBLSRVs(ComPtr<ID3D11DeviceContext>& context);
+    void BindIBLSRVs(ComPtr<ID3D11DeviceContext>& context);
     ~EnvMap();
 
 private:
     Cube m_shape;
-    // Mesh* m_mesh;
     std::string m_name;
-    std::wstring m_filepath;
+    std::string m_filepath;
 
-    ComPtr<ID3D11ShaderResourceView> m_envSRV;
-    // For IBL
-    ComPtr<ID3D11ShaderResourceView> m_irradianceSRV;
-    ComPtr<ID3D11ShaderResourceView> m_specularSRV;
-    ComPtr<ID3D11ShaderResourceView> m_brdfLookUpSRV;
-
+    Texture m_envMap;
+    // IBL
+    Texture m_irradianceMap;
+    Texture m_specularMap;
+    Texture m_brdfLUT;
 };

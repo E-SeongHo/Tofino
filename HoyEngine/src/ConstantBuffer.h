@@ -16,7 +16,7 @@ template<typename T>
 class ConstantBuffer : public Buffer
 {
 public:
-	ConstantBuffer() = default;
+	//ConstantBuffer() = default;
 	ConstantBuffer(UINT bindFlag, UINT slot) : m_bindFlag(bindFlag), m_slot(slot) {}
 
 	void Init(ComPtr<ID3D11Device>& device)

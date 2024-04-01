@@ -5,8 +5,8 @@
 #include <iostream>
 
 Scene::Scene()
+	:m_constBuffer(ConstantBuffer<GlobalBuffer>(VERTEX_SHADER | GEOMETRY_SHADER | PIXEL_SHADER, 10))
 {
-	m_constBuffer = ConstantBuffer<GlobalBuffer>(VERTEX_SHADER | GEOMETRY_SHADER | PIXEL_SHADER, 10); 
 }
 
 Scene::~Scene()

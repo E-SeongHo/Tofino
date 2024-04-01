@@ -8,13 +8,8 @@
 #include <vector>
 #include <directxtk/SimpleMath.h>
 
-#include "Geometry.h"
-#include "Model.h"
-#include "Camera.h"
-#include "ShaderManager.h"
-#include "Light.h"
-#include "EnvMap.h"
-#include "Scene.h"
+class Scene;
+class Geometry;
 
 using Microsoft::WRL::ComPtr;
 class Graphics

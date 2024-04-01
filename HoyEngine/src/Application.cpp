@@ -6,6 +6,8 @@
 #include <tuple>
 
 #include "Application.h"
+#include "Scene.h"
+#include "ShaderManager.h"
 
 #include <directxtk/SimpleMath.h>
 using namespace DirectX::SimpleMath;

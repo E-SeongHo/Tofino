@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Object.h"
+#include "Model.h"
 #include "Camera.h"
 #include "EnvMap.h"
 #include "Light.h"

@@ -4,14 +4,15 @@
 
 using DirectX::SimpleMath::Matrix;
 using DirectX::SimpleMath::Vector3;
+using DirectX::SimpleMath::Vector4;
+
 using namespace std;
 
 Object::Object(const std::string name, const bool isHittable)
+	: m_constBuffer(ConstantBuffer<ModelBuffer>(VERTEX_SHADER | PIXEL_SHADER, 0))
 {
 	hitEnabled = isHittable;
 	m_name = name;
-
-	m_constBuffer = ConstantBuffer<ModelBuffer>(VERTEX_SHADER | PIXEL_SHADER, 0);
 }
 
 void Object::Init(ComPtr<ID3D11Device>& device)
@@ -30,7 +31,6 @@ void Object::Render(ComPtr<ID3D11DeviceContext>& context)
 
 	for (auto& mesh : m_meshes)
 	{
-		mesh.SetSRVs(context);
 		mesh.Render(context);
 	}
 }
@@ -105,7 +105,6 @@ void Object::SetScale(DirectX::SimpleMath::Vector3 scale)
 
 void Object::Update(float deltaTime)
 {
-	//if(m_updateFlag) UpdateBuffer()
 }
 
 ConstantBuffer<ModelBuffer>& Object::GetConstBuffer()
@@ -116,52 +115,31 @@ ConstantBuffer<ModelBuffer>& Object::GetConstBuffer()
 void Object::UpdateBuffer(ComPtr<ID3D11DeviceContext>& context)
 {
 	m_constBuffer.Update(context);
+	for (auto& mesh : m_meshes)
+	{
+		if (mesh.IsUpdateFlagSet()) mesh.UpdateBuffer(context);
+	}
 
-	//Util::UpdateConstantBuffer(context, m_modelBufferCPU, m_modelBufferGPU);
 	m_updateFlag = false;
 }
 
-void Object::SetMaterials(const float roughness, const float metallic, const DirectX::SimpleMath::Vector4 albedo)
+void Object::SetMeshMaterialFactors(DirectX::SimpleMath::Vector4 baseColor, const float roughness, const float metallic, const int partNumber)
 {
-	m_constBuffer.GetData().material.albedo = albedo;
-	m_constBuffer.GetData().material.roughness = roughness;
-	m_constBuffer.GetData().material.metallic = metallic;
-
-	m_updateFlag = true;
-}
-
-void Object::AttachAlbedoTexture(std::string filename, int partNumber)
-{	// match given texture file name with the mesh
-	if (partNumber < m_meshes.size())
+	if (partNumber >= 0 && partNumber < m_meshes.size())
 	{
-		m_meshes[partNumber].m_diffuseFilename = filename;
-	}
-	else
-	{
-		std::cout << "Wrong part number. part number starts from 0 " << std::endl;
+		m_meshes[partNumber].SetMaterialFactors(baseColor, roughness, metallic);
 	}
 }
 
-void Object::AttachNormalTexture(std::string filename, int partNumber)
-{	// match given texture file name with the mesh
-	if (partNumber < m_meshes.size())
+void Object::SetAllMeshMaterialFactors(const DirectX::SimpleMath::Vector4 baseColor, const float roughness, const float metallic)
+{
+	for (auto& mesh : m_meshes)
 	{
-		m_meshes[partNumber].m_normalFilename = filename;
-	}
-	else
-	{
-		std::cout << "Wrong part number. part number starts from 0 " << std::endl;
+		mesh.SetMaterialFactors(baseColor, roughness, metallic);
 	}
 }
 
-void Object::AttachHeightTexture(std::string filename, int partNumber)
-{	// match given texture file name with the mesh
-	if (partNumber < m_meshes.size())
-	{
-		m_meshes[partNumber].m_heightFilename = filename;
-	}
-	else
-	{
-		std::cout << "Wrong part number. part number starts from 0 " << std::endl;
-	}
+std::vector<Mesh>& Object::GetMeshes()
+{
+	return m_meshes;
 }

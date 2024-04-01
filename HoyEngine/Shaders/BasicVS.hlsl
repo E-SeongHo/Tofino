@@ -9,19 +9,23 @@ cbuffer ModelConstBuffer : register(b0)
 {
 	matrix world;
 	matrix worldIT;
-	Material material;
 	int activeAlbedoMap;
 	int activeNormalMap;
 	int activeHeightMap;
 	int padding;
 };
 
-cbuffer MappingInfoBuffer : register(b1)
+cbuffer MaterialStatus : register(b1)
 {
-	int hasAlbedoMap;
-	int hasNormalMap;
-	int hasHeightMap;
-	int padding2;
+    float4 baseColor;
+    float roughness;
+    float metallic;
+    float2 padding2;
+	
+    int hasAlbedoMap;
+    int hasNormalMap;
+    int hasHeightMap;
+    int padding3;
 }
 
 struct PSInput
