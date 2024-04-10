@@ -1,63 +1,64 @@
-
 #include "EnvMap.h"
 #include "Geometry.h"
 
 #include <string>
 #include <DirectXCollision.h>
 
-using namespace std;
-
-EnvMap::EnvMap(const std::string name, const std::string filepath)
+namespace Tofino
 {
-    m_name = name;
-    m_filepath = filepath;
-}
+    EnvMap::EnvMap(const std::string name, const std::string filepath)
+        : m_name(name), m_filepath(filepath)
+    {
+        Cube shape;
+        shape.LoadGeometry(500.0f);
 
-void EnvMap::Init(ComPtr<ID3D11Device>& device)
-{
-    m_shape.LoadGeometry(200.0f);
+        // hack : trivial copy overhead 
+        Mesh& meshData = shape.GetMeshes()[0];
+        std::vector<Vertex> vertices(meshData.GetVertexBuffer().GetData());
+        std::vector<uint32_t> indices(meshData.GetIndexBuffer().GetData());
 
-    Mesh& mesh = m_shape.m_meshes[0];
-    std::reverse(mesh.m_indexBuffer.GetData().begin(), mesh.m_indexBuffer.GetData().end());
+        std::reverse(indices.begin(), indices.end());
 
-    size_t idx = m_filepath.rfind("/", m_filepath.size() - 2);
-    string prefix = m_filepath.substr(idx);
-    prefix = prefix.substr(1, prefix.size() - 2);
+        m_vertexBuffer = VertexBuffer(vertices);
+        m_indexBuffer = IndexBuffer(indices);
+    }
 
-    const string envFilename = m_filepath + prefix + "EnvHDR.dds";
-    const string irradianceFilename = m_filepath + prefix + "DiffuseHDR.dds";
-    const string specularFilename = m_filepath + prefix + "SpecularHDR.dds";
-    const string brdfFilename = m_filepath + prefix + "Brdf.dds";
+    void EnvMap::Init(ComPtr<ID3D11Device>& device)
+    {
+        m_vertexBuffer.Init(device);
+        m_indexBuffer.Init(device);
 
-    m_envMap.Load(device, envFilename, TextureType::CUBE);
-    m_irradianceMap.Load(device, irradianceFilename, TextureType::CUBE);
-    m_specularMap.Load(device, specularFilename, TextureType::CUBE);
-    m_brdfLUT.Load(device, brdfFilename, TextureType::DEFAULT);
+        size_t idx = m_filepath.rfind("/", m_filepath.size() - 2);
+        std::string prefix = m_filepath.substr(idx);
+        prefix = prefix.substr(1, prefix.size() - 2);
 
-    m_shape.Init(device);
-}
+        const std::string envFilename = m_filepath + prefix + "EnvHDR.dds";
+        const std::string irradianceFilename = m_filepath + prefix + "DiffuseHDR.dds";
+        const std::string specularFilename = m_filepath + prefix + "SpecularHDR.dds";
+        const std::string brdfFilename = m_filepath + prefix + "Brdf.dds";
 
-void EnvMap::Render(ComPtr<ID3D11DeviceContext>& context)
-{
-    m_shape.GetConstBuffer().Bind(context);
+        m_envMap.Load(device, envFilename, TextureType::CUBE);
+        m_irradianceMap.Load(device, irradianceFilename, TextureType::CUBE);
+        m_specularMap.Load(device, specularFilename, TextureType::CUBE);
+        m_brdfLUT.Load(device, brdfFilename, TextureType::DEFAULT);
+    }
 
-    context->PSSetShaderResources(0, 1, m_envMap.GetSRV().GetAddressOf());
+    void EnvMap::Bind(ComPtr<ID3D11DeviceContext>& context) const
+    {
+        context->PSSetShaderResources(0, 1, m_envMap.GetSRV().GetAddressOf());
 
-    UINT stride = sizeof(Vertex);
-    UINT offset = 0;
-    context->IASetVertexBuffers(0, 1, m_shape.m_meshes[0].m_vertexBuffer.GetBuffer().GetAddressOf(), &stride, &offset);
-    context->IASetIndexBuffer(m_shape.m_meshes[0].m_indexBuffer.GetBuffer().Get(), DXGI_FORMAT_R32_UINT, 0);
-    context->DrawIndexed(m_shape.m_meshes[0].m_indexCount, 0, 0);
-}
+        UINT stride = sizeof(Vertex);
+        UINT offset = 0;
+        context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetBuffer().GetAddressOf(), &stride, &offset);
+        context->IASetIndexBuffer(m_indexBuffer.GetBuffer().Get(), DXGI_FORMAT_R32_UINT, 0);
+    }
 
-void EnvMap::BindIBLSRVs(ComPtr<ID3D11DeviceContext>& context)
-{
-    ID3D11ShaderResourceView* IBLTextures[] =
-    { m_irradianceMap.GetSRV().Get(), m_specularMap.GetSRV().Get(), m_brdfLUT.GetSRV().Get() };
+    void EnvMap::BindIBLSRVs(ComPtr<ID3D11DeviceContext>& context) const
+    {
+        ID3D11ShaderResourceView* IBLTextures[] =
+        { m_irradianceMap.GetSRV().Get(), m_specularMap.GetSRV().Get(), m_brdfLUT.GetSRV().Get() };
 
-    context->PSSetShaderResources(10, 3, IBLTextures);
-}
+        context->PSSetShaderResources(10, 3, IBLTextures);
+    }
 
-EnvMap::~EnvMap()
-{
 }

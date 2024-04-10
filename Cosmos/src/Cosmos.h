@@ -3,7 +3,7 @@
 #include <Application.h>
 #include <Scene.h>
 
-class Cosmos : public Application
+class Cosmos : public Tofino::Application
 {
 public:
 	Cosmos();
@@ -19,5 +19,5 @@ private:
 	void DesignScenes();
 
 private:
-	Scene* m_scene;
+	Tofino::Scene* m_scene;
 };

@@ -1,11 +1,14 @@
 #pragma once
 
-#include <directxtk/SimpleMath.h>
+#include "SimpleMath.h"
 
-struct Transform
+namespace Tofino
 {
-public:
-	DirectX::SimpleMath::Vector3 Location = DirectX::SimpleMath::Vector3(0.0f);
-	DirectX::SimpleMath::Vector3 Rotation = DirectX::SimpleMath::Vector3(0.0f);
-	DirectX::SimpleMath::Vector3 Scale = DirectX::SimpleMath::Vector3(1.0f);
-};	
+	struct Transform
+	{
+	public:
+		Vector3 Location = Vector3(0.0f);
+		Vector3 Rotation = Vector3(0.0f);
+		Vector3 Scale = Vector3(1.0f);
+	};
+}

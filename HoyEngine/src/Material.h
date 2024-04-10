@@ -1,19 +1,15 @@
 #pragma once
 
-#include <directxtk/SimpleMath.h>
-
+#include "SimpleMath.h"
 #include "Texture.h"
 #include "ConstantBuffer.h"
 
-
-// Every Mesh own Material
-class Material
+namespace Tofino
 {
-	using Color = DirectX::SimpleMath::Vector4;
 	// Abstraction of Material ( to upload GPU )
 	struct MaterialStatus
 	{
-		Color baseColor = Color(0.0f, 0.0f, 0.0f, 1.0f);
+		Vector4 baseColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 		float roughness = 0.1f;
 		float metallic = 0.1f;
 		float padding[2];
@@ -24,28 +20,32 @@ class Material
 		int padding2;
 	};
 
-public:
-	Material() = default;
-	Material(UINT constBufferFlag, UINT slot);
-	~Material() = default;
+	// Every Mesh own Material
+	class Material
+	{
+	public:
+		Material() = default;
+		Material(UINT constBufferFlag, UINT slot);
+		~Material() = default;
 
-	void Init(ComPtr<ID3D11Device>& device);
-	void Update(ComPtr<ID3D11DeviceContext>& context);
-	void Bind(ComPtr<ID3D11DeviceContext>& context);
-	
-	void SetFactors(Color baseColor, float roughness, float metallic);
-	
-	// Shallow copy
-	void SetAlbedoMap(const Texture& texture);
-	void SetNormalMap(const Texture& texture);
-	void SetHeightMap(const Texture& texture);
+		void Init(ComPtr<ID3D11Device>& device);
+		void Update(ComPtr<ID3D11DeviceContext>& context);
+		void Bind(ComPtr<ID3D11DeviceContext>& context) const;
 
-	MaterialStatus& GetMaterialStatus();
-	
-private:
-	ConstantBuffer<MaterialStatus> m_status;
+		void SetFactors(Vector4 baseColor, float roughness, float metallic);
 
-	Texture m_albedoMap;
-	Texture m_normalMap;
-	Texture m_heightMap;
-};
+		// Shallow copy
+		void SetAlbedoMap(const Texture& texture);
+		void SetNormalMap(const Texture& texture);
+		void SetHeightMap(const Texture& texture);
+
+		MaterialStatus& GetMaterialStatus();
+
+	private:
+		ConstantBuffer<MaterialStatus> m_status;
+
+		Texture m_albedoMap;
+		Texture m_normalMap;
+		Texture m_heightMap;
+	};
+}

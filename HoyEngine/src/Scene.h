@@ -9,71 +9,62 @@
 #include <functional>
 #include <string>
 
-// Global for scene
-struct GlobalBuffer
-{   // Make sure must be a column matrix
-	DirectX::SimpleMath::Matrix view;
-	DirectX::SimpleMath::Matrix projection;
-
-	DirectX::SimpleMath::Vector3 eye; // world
-	float padding1;
-	Light light; // 32bytes
-};
-
-class Scene
+namespace Tofino
 {
-public:
-	Scene();
-	~Scene();
-	
-	// Binds an update function of the scene
-	void BindUpdateFunction(std::function<void(float)> updateFn);
+	// Global for scene
+	struct GlobalBuffer
+	{   // Make sure must be a column matrix
+		Matrix view;
+		Matrix projection;
 
-	// Sets a name of the scene
-	void SetName(std::string name);
+		Vector3 eye; // world
+		float padding1;
+		Light light; // 32bytes
+	};
 
-	// Sets a camera for the scene
-	void SetCamera(Camera* camera);
+	class Scene
+	{
+	public:
+		Scene();
+		~Scene();
 
-	// Adds a light in the scene
-	void AddLight(Light* light);
+		void BindUpdateFunction(std::function<void(float)> updateFn);
 
-	// Adds object on the scene and init object
-	void AddObject(Object* object);
+		void SetName(std::string name);
 
-	// Adds skybox on the scene and init object
-	void AddSkybox(EnvMap* skybox);
+		void SetCamera(Camera* camera);
 
-	// Update : Calls bound update function
-	void Update(float deltaTime);
+		void AddLight(Light* light);
 
-	// Returns camera used in the scene
-	Camera* GetCamera();
+		void AddObject(Object* object);
 
-	// Returns vector of all objects in the scene
-	std::vector<Object*> GetAllSceneObjects();
+		void AddSkybox(EnvMap* skybox);
 
-	// Returns skybox of the scene
-	EnvMap* GetSkybox();
+		void Update(float deltaTime);
 
-	// Gets SceneConstBuffer
-	ConstantBuffer<GlobalBuffer>& GetSceneConstBuffer();
+		Camera* GetCamera();
 
-private:
-	// Update Function for the scene
-	std::function<void(float dt)> Fn_Update;
+		std::vector<Object*> GetAllSceneObjects();
 
-	std::string m_name;
+		EnvMap* GetSkybox();
 
-	Camera* m_camera = nullptr;
-	std::vector<Object*> m_objects;
-	std::vector<Light*> m_lights; // TODO: light will be derived from object soon(to draw emitting)
+		ConstantBuffer<GlobalBuffer>& GetSceneConstBuffer();
 
-	// I still don't think it needs to be ref counted, and neither managed with pointer
-	// this life scope would be equal with the scene life scope
-	// ) If scene deleted : scene will be ref counted, so the member will not be deleted
-	ConstantBuffer<GlobalBuffer> m_constBuffer; 
+	private:
+		std::function<void(float dt)> Fn_Update;
 
-	EnvMap* m_skybox = nullptr;
-};
+		std::string m_name;
 
+		Camera* m_camera = nullptr;
+		std::vector<Object*> m_objects;
+		std::vector<Light*> m_lights; // TODO: light will be derived from object soon(to draw emitting)
+
+		// I still don't think it needs to be ref counted, and neither managed with pointer
+		// this life scope would be equal with the scene life scope
+		// ) If scene deleted : scene will be ref counted, so the member will not be deleted
+		ConstantBuffer<GlobalBuffer> m_constBuffer;
+
+		EnvMap* m_skybox = nullptr;
+	};
+
+}

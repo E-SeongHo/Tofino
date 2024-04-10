@@ -5,13 +5,16 @@
 #include <d3dcompiler.h>
 #include <wrl.h> 
 
-using Microsoft::WRL::ComPtr;
-
-inline void ThrowIfFailed(HRESULT hr)
+namespace Tofino
 {
-	if (FAILED(hr)) 
+	using Microsoft::WRL::ComPtr;
+
+	inline void ThrowIfFailed(HRESULT hr)
 	{
-		// Set a breakpoint on this line to catch Win32 API errors.
-		throw std::exception();
+		if (FAILED(hr))
+		{
+			// Set a breakpoint on this line to catch Win32 API errors.
+			throw std::exception();
+		}
 	}
 }

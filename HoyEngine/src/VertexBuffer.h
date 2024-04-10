@@ -2,30 +2,34 @@
 
 #include <vector>
 
+#include "SimpleMath.h"
 #include "Buffer.h"
 
-struct Vertex
+namespace Tofino
 {
-	DirectX::SimpleMath::Vector3 pos;
-	DirectX::SimpleMath::Vector3 color;
-	DirectX::SimpleMath::Vector3 normal;
-	DirectX::SimpleMath::Vector2 uv;
-	DirectX::SimpleMath::Vector3 tangent;
-};
+	struct Vertex
+	{
+		Vector3 pos;
+		Vector3 color;
+		Vector3 normal;
+		Vector2 uv;
+		Vector3 tangent;
+	};
 
-class VertexBuffer : public Buffer
-{
-public:
-	VertexBuffer(std::vector<Vertex>& vertices);
-	~VertexBuffer() override {}
+	class VertexBuffer : public Buffer
+	{
+	public:
+		VertexBuffer() = default;
+		VertexBuffer(std::vector<Vertex>& vertices);
+		~VertexBuffer() override {}
 
-	void Init(ComPtr<ID3D11Device>& device) override;
+		void Init(ComPtr<ID3D11Device>& device) override;
 
-	void Bind(ComPtr<ID3D11DeviceContext>& context) override;
+		void Bind(ComPtr<ID3D11DeviceContext>& context) const override;
 
-	std::vector<Vertex>& GetData();
+		std::vector<Vertex>& GetData() { return m_vertices; }
 
-private:
-	std::vector<Vertex> m_vertices;
-};
-
+	private:
+		std::vector<Vertex> m_vertices;
+	};
+}

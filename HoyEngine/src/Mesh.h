@@ -5,27 +5,34 @@
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
 
-using Microsoft::WRL::ComPtr;
-class Mesh
+namespace Tofino
 {
-public:
-    Mesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
-    
-    void Init(ComPtr<ID3D11Device>& device);
-    void UpdateBuffer(ComPtr<ID3D11DeviceContext>& context);
-    void Render(ComPtr<ID3D11DeviceContext>& context);
-    void RenderNormal(ComPtr<ID3D11DeviceContext>& context);
-    void CopySquareRenderSetup(ComPtr<ID3D11DeviceContext>& context);
+    using Microsoft::WRL::ComPtr;
+    class Mesh
+    {
+    public:
+        Mesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
 
-    bool IsUpdateFlagSet();
-    Material& GetMaterial();
-    void SetMaterialFactors(DirectX::SimpleMath::Vector4 baseColor, const float roughness, const float metallic);
+        void Init(ComPtr<ID3D11Device>& device);
+        void UpdateBuffer(ComPtr<ID3D11DeviceContext>& context);
+        void Bind(ComPtr<ID3D11DeviceContext>& context) const;
 
-public:
-    VertexBuffer m_vertexBuffer;
-    IndexBuffer m_indexBuffer;
-    UINT m_indexCount = 0;
+        bool IsUpdateFlagSet() const { return m_updateFlag; }
+        void SetUpdateFlag(bool flag) { m_updateFlag = flag; }
 
-    Material m_material;
-    bool m_updateFlag = false;
-};
+        uint32_t GetIndexCount() { return m_indexBuffer.GetData().size(); }
+
+        VertexBuffer& GetVertexBuffer() { return m_vertexBuffer; }
+        IndexBuffer& GetIndexBuffer() { return m_indexBuffer; }
+        Material& GetMaterial() { return m_material; }
+
+        void SetMaterialFactors(Vector4 baseColor, const float roughness, const float metallic);
+
+    private:
+        VertexBuffer m_vertexBuffer;
+        IndexBuffer m_indexBuffer;
+
+        Material m_material;
+        bool m_updateFlag = false;
+    };
+}

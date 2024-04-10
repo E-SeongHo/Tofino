@@ -3,12 +3,12 @@
 
 #include "Application.h"
 
-extern Application* CreateApplication();
+extern Tofino::Application* CreateApplication();
 
 int main(int argc, char** argv)
 {
-	Application* app = CreateApplication();
-	
+	Tofino::Application* app = CreateApplication();
+
 	if (!app->Init())
 	{
 		std::cout << "Init Failed" << std::endl;
@@ -19,5 +19,4 @@ int main(int argc, char** argv)
 
 	return 0;
 }
-
 

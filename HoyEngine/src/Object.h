@@ -8,76 +8,86 @@
 #include "Transform.h"
 #include "ConstantBuffer.h"
 
-// 16Byte align
-struct ModelBuffer // Must Store as a Column Matrix 
+namespace Tofino
 {
-	DirectX::SimpleMath::Matrix world;
-	DirectX::SimpleMath::Matrix worldIT;
+	// 16Byte align
+	struct ModelBuffer // Must Store as a Column Matrix 
+	{
+		Matrix world;
+		Matrix worldIT;
 
-	// for test 
-	int activeAlbedoMap = 1;
-	int activeNormalMap = 1;
-	int activeHeightMap = 1;
-	int padding;
-};
+		// for test 
+		int activeAlbedoMap = 1;
+		int activeNormalMap = 1;
+		int activeHeightMap = 1;
+		int padding;
+	};
 
-using Microsoft::WRL::ComPtr;
+	using Microsoft::WRL::ComPtr;
 
-class Hittable
-{
-public:
-	bool hitEnabled = false;
-	DirectX::BoundingSphere m_boundingSphere;
-};
+	//struct PickingVolume
+	//{
+	//	DirectX::BoundingSphere Sphere;
+	//	float Dx, Dy, Dz;
+	//};
 
-class Object : public Hittable
-{
-public:
-	Object(const std::string name = "Untitled", const bool isHittable = true);
-	//virtual ~Object();
+	class Hittable
+	{
+	public:
+		bool hitEnabled = false;
+		DirectX::BoundingSphere m_boundingSphere;
+	};
 
-	// Load Textures, Create Buffers
-	void Init(ComPtr<ID3D11Device>& device);
-	
-	void Render(ComPtr<ID3D11DeviceContext>& context);
-	
-	void RenderNormal(ComPtr<ID3D11DeviceContext>& context);
+	class Object : public Hittable
+	{
+	public:
+		Object(const std::string name = "Untitled", const bool isHittable = true);
+		//virtual ~Object();
 
-	void UpdateWorldMatrix(DirectX::SimpleMath::Matrix worldRow);
-	
-	//Transform& GetTransform(); 
-	void SetLocation(DirectX::SimpleMath::Vector3 location);
-	
-	// Sets XYZ rotation order
-	void SetRotation(DirectX::SimpleMath::Vector3 rotation); 
-	
-	void SetScale(DirectX::SimpleMath::Vector3 scale);
+		void Init(ComPtr<ID3D11Device>& device);
 
-	virtual void Update(float deltaTime);
+		void Bind(ComPtr<ID3D11DeviceContext>& context) const;
 
-	// Gets const buffer of the object
-	ConstantBuffer<ModelBuffer>& GetConstBuffer();
+		void UpdateWorldMatrix(Matrix worldRow);
 
-	void UpdateBuffer(ComPtr<ID3D11DeviceContext>& context);
-	
-	DirectX::SimpleMath::Matrix GetWorldMatrix();
-	
-	void SetMeshMaterialFactors(
-		const DirectX::SimpleMath::Vector4 baseColor, const float roughness, const float metallic, const int partNumber);
-	void SetAllMeshMaterialFactors(
-		const DirectX::SimpleMath::Vector4 baseColor, const float roughness, const float metallic);
+		//Transform& GetTransform(); 
+		void SetLocation(Vector3 location);
 
-	std::vector<Mesh>& GetMeshes();
+		// Sets XYZ rotation order
+		void SetRotation(Vector3 rotation);
 
-public:
-	Transform m_transform; 
-	std::string m_name;
+		void SetScale(Vector3 scale);
 
-	std::vector<Mesh> m_meshes;
-	
-	bool m_updateFlag = false;
+		virtual void Update(float deltaTime);
 
-private:
-	ConstantBuffer<ModelBuffer> m_constBuffer;
+		ConstantBuffer<ModelBuffer>& GetConstBuffer();
 
-};
+		void UpdateBuffer(ComPtr<ID3D11DeviceContext>& context);
+
+		Matrix GetWorldMatrix();
+
+		void SetMeshMaterialFactors(
+			const Vector4 baseColor, const float roughness, const float metallic, const int partNumber);
+		void SetAllMeshMaterialFactors(
+			const Vector4 baseColor, const float roughness, const float metallic);
+
+		void SetUpdateFlag(bool flag);
+
+		bool IsUpdateFlagSet() const;
+
+		std::string GetName() const;
+
+		std::vector<Mesh>& GetMeshes();
+
+	public:
+		Transform m_transform;
+
+	protected:
+		std::string m_name;
+		bool m_updateFlag = false;
+
+		std::vector<Mesh> m_meshes;
+		ConstantBuffer<ModelBuffer> m_constBuffer;
+	};
+
+}

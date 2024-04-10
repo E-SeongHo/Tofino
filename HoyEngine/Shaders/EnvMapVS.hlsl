@@ -1,10 +1,10 @@
 
 #include "Common.hlsli"
 
-cbuffer ModelConstants : register(b0)
-{
-	matrix world;
-}
+//cbuffer ModelConstants : register(b0)
+//{
+//	matrix world;
+//}
 
 struct EnvMapPSInput
 {
@@ -20,8 +20,8 @@ EnvMapPSInput main(BasicVertexInput input)
 	EnvMapPSInput output;
 
 	float4 pos = float4(input.pos, 1.0f);
-	pos = mul(pos, world);
 
+    //pos = mul(pos, world);
 	output.posWorld = pos;
 	pos = mul(pos, view);
 	pos = mul(pos, projection);

@@ -1,19 +1,22 @@
 #pragma once
 
-#include <directxtk/SimpleMath.h>
+#include "SimpleMath.h"
 
-enum class LightType
+namespace Tofino
 {
-	DIRECTIONAL_LIGHT,
-	POINT_LIGHT,
-	SPOT_LIGHT,
-};
+	enum class LightType
+	{
+		DIRECTIONAL_LIGHT,
+		POINT_LIGHT,
+		SPOT_LIGHT,
+	};
 
-struct Light // 16byte allign
-{
-	// LightType type;
-	DirectX::SimpleMath::Vector3 pos;
-	float strength;
-	DirectX::SimpleMath::Vector3 direction;
-	float coefficient;
-};
+	struct Light // 16byte allign
+	{
+		// LightType type;
+		Vector3 pos;
+		float strength;
+		Vector3 direction;
+		float coefficient;
+	};
+}

@@ -1,47 +1,51 @@
 #pragma once
 
-#include <directxtk/SimpleMath.h>
+#include "SimpleMath.h"
 
-class Camera
+namespace Tofino
 {
-private:
-	// Camera Internal Parameters for View Transform
-	DirectX::SimpleMath::Vector3 m_origin;
-	DirectX::SimpleMath::Vector3 m_direction;
-	DirectX::SimpleMath::Vector3 m_up;
-	DirectX::SimpleMath::Vector3 m_right; 
+	class Camera
+	{
+	public:
+		Camera();
+		Vector3 GetOrigin() const { return m_origin; }
+		Vector3 GetDirection() const { return m_direction; }
+		Vector3 GetRight() const { return m_right; }
+		Vector3 GetUp() const { return m_up; }
 
-	// Camera External Parameters for Projection
-	float m_nearZ;
-	float m_farZ;
-	float m_fovY;
-	float m_aspect;
-	float m_speed;
+		Matrix GetViewMatrix() const;
+		Matrix GetProjectionMatrix() const;
 
-	// For Rotation
-	float m_yaw;
-	float m_pitch;
+		void SetAspect(float aspect) { m_aspect = aspect; }
+		void SetRunVars(bool flag);
 
-	// Run variables
-	bool m_isRun = false;
-	const float walkSpeed = 5.0f;
-	const float walkFovY = 70.0f;
-	
+		void RotateFromMouse(const float ndcX, const float ndcY);
+		void MoveForward(float dt) { m_origin += m_direction * dt * m_speed; }
+		void MoveRight(float dt) { m_origin += m_right * dt * m_speed; }
 
-public:
-	Camera();
-	DirectX::SimpleMath::Vector3 GetOrigin();
-	DirectX::SimpleMath::Vector3 GetDirection();
-	DirectX::SimpleMath::Vector3 GetRight();
-	DirectX::SimpleMath::Vector3 GetUp();
+	private:
+		// Camera Internal Parameters for View Transform
+		Vector3 m_origin;
+		Vector3 m_direction;
+		Vector3 m_up;
+		Vector3 m_right;
 
-	DirectX::SimpleMath::Matrix GetViewMatrix();
-	DirectX::SimpleMath::Matrix GetProjectionMatrix();
+		// Camera External Parameters for Projection
+		float m_nearZ;
+		float m_farZ;
+		float m_fovY;
+		float m_aspect;
+		float m_speed;
 
-	void RotateFromMouse(const float ndcX, const float ndcY);
-	void MoveForward(float dt);
-	void MoveRight(float dt);
-	void SetRunVars(bool flag);
+		// For Rotation
+		float m_yaw;
+		float m_pitch;
 
-	void SetAspect(float aspect);
-};
+		// Run variables
+		bool m_isRun = false;
+		const float walkSpeed = 5.0f;
+		const float walkFovY = 70.0f;
+
+	};
+
+}

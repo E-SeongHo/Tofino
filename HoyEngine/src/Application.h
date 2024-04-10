@@ -12,61 +12,64 @@
 	#define NOMINMAX
 #endif
 
-enum class AppMode
+namespace Tofino
 {
-	EDIT, // default
-	TRAVERSAL,
-};
+	enum class AppMode
+	{
+		EDIT, // default
+		TRAVERSAL,
+	};
 
-class Application
-{
-public:
-	Application();
-	virtual ~Application();
+	class Application
+	{
+	public:
+		Application();
+		virtual ~Application();
 
-	virtual bool Init();
+		virtual bool Init();
 
-	void Run();
+		void Run();
 
-	// Sets current scene
-	void SetCurrentScene(Scene* scene);
-	
-	virtual void Update(float deltaTime);
+		// Sets current scene
+		void SetCurrentScene(Scene* scene);
 
-	virtual void RenderGUI() = 0;
+		virtual void Update(float deltaTime);
 
-	// Process keyboard events (key settings)
-	virtual void HandleKeyboardEvent();
+		virtual void RenderGUI() = 0;
 
-	LRESULT ProcessMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+		// Process keyboard events (key settings)
+		virtual void HandleKeyboardEvent();
 
-private:
-	bool InitWindow();
-	bool InitRenderer();
-	bool InitGUI();
-	
-	// Sets application mode
-	void ChangeAppMode(AppMode appMode);
-	
-	// Translates picking objects with mouse
-	void MouseTranslateObject(float deltaTime);
+		LRESULT ProcessMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-	// Moves and Rotates current scene camera
-	void AdjustSceneCamera(float deltaTime);
+	private:
+		bool InitWindow();
+		bool InitRenderer();
+		bool InitGUI();
 
-protected:
-	int m_width = 1600, m_height = 900;
-	int m_startX = 100, m_startY = 100;
+		// Sets application mode
+		void ChangeAppMode(AppMode appMode);
 
-	HWND m_window;
-	std::unique_ptr<Input> m_input;
-	AppMode m_appMode = AppMode::EDIT;
+		// Translates picking objects with mouse
+		void MouseTranslateObject(float deltaTime);
 
-private:
-	Scene* m_currentScene = nullptr;
+		// Moves and Rotates current scene camera
+		void AdjustSceneCamera(float deltaTime);
 
-	//friend int main(int argc, char** argv);
-};
+	protected:
+		int m_width = 1600, m_height = 900;
+		int m_startX = 100, m_startY = 100;
 
-// Defined in Client Project
-Application* CreateApplication();
+		HWND m_window;
+		std::unique_ptr<Input> m_input;
+		AppMode m_appMode = AppMode::EDIT;
+
+	private:
+		Scene* m_currentScene = nullptr;
+
+		//friend int main(int argc, char** argv);
+	};
+
+	// Defined in Client Project
+	Application* CreateApplication();
+}

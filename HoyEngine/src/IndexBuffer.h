@@ -4,19 +4,23 @@
 
 #include "Buffer.h"
 
-class IndexBuffer : public Buffer
+namespace Tofino
 {
-public:
-	IndexBuffer(std::vector<uint32_t> indices);
-	~IndexBuffer() override {}
+	class IndexBuffer : public Buffer
+	{
+	public:
+		IndexBuffer() = default;
+		IndexBuffer(std::vector<uint32_t> indices);
+		~IndexBuffer() override {}
 
-	void Init(ComPtr<ID3D11Device>& device) override;
+		void Init(ComPtr<ID3D11Device>& device) override;
 
-	void Bind(ComPtr<ID3D11DeviceContext>& context) override;
+		void Bind(ComPtr<ID3D11DeviceContext>& context) const override;
 
-	std::vector<uint32_t>& GetData();
+		const std::vector<uint32_t>& GetData() const { return m_indices; }
 
-private:
-	std::vector<uint32_t> m_indices;
-};
+	private:
+		std::vector<uint32_t> m_indices;
+	};
 
+}

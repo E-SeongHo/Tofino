@@ -5,9 +5,9 @@
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
 
-using namespace std;
-using namespace DirectX::SimpleMath;
+#include "Helper.h"
 
+using namespace Tofino;
 Cosmos::Cosmos()
 {
     m_scene = new Scene();
@@ -35,7 +35,6 @@ void Cosmos::DesignScenes()
     cam->SetAspect(static_cast<float>(m_width) / m_height);
 
     m_scene->SetCamera(cam);
-
     {
         Geometry* sphere = new Sphere("Test Sphere", true);
         sphere->LoadGeometry();
@@ -45,17 +44,18 @@ void Cosmos::DesignScenes()
 
     {
         Model* spaceship = new Model("Space Station", true);
-        spaceship->LoadModel("D:/Workspace/3DModels/sci-fi-space-station/SpaceStation.fbx", 10.0f);
+        spaceship->LoadModel("D:/Workspace/3DModels/sci-fi-space-station/SpaceStation.fbx", 0.005f);
+        //spaceship->SetScale({ 0.01f, 0.01f, 0.01f });
 
         // Since Assimp failed to find appropriate textures
         {
             Texture bodyAlbedo2(
-                Graphics::GetDevice(),
+                RendererDevice,
                 spaceship->m_directory + "SpaceStationParts2_BaseColor.png",
                 TextureType::ALBEDO);
 
             Texture bodyAlbedo1(
-                Graphics::GetDevice(),
+                RendererDevice,
                 spaceship->m_directory + "SpaceStationParts1_BaseColor.png",
                 TextureType::ALBEDO);
 
@@ -68,6 +68,7 @@ void Cosmos::DesignScenes()
         }
 
         spaceship->SetAllMeshMaterialFactors(Vector4(0.0f), 0.1f, 0.7f);
+        spaceship->GetMeshes()[0].SetMaterialFactors(Vector4(0.0f), 0.1, 0.9f);
         m_scene->AddObject(spaceship);
     }
 
@@ -77,10 +78,10 @@ void Cosmos::DesignScenes()
         
         // Since Assimp failed to find appropriate textures
         {
-            Texture bodyAlbedo(Graphics::GetDevice(), aircraft->m_directory + "E-45 _col.jpg", TextureType::ALBEDO);
-            Texture bodyNormal(Graphics::GetDevice(), aircraft->m_directory + "E-45-nor_1.jpg", TextureType::NORMAL);
+            Texture bodyAlbedo(RendererDevice, aircraft->m_directory + "E-45 _col.jpg", TextureType::ALBEDO);
+            Texture bodyNormal(RendererDevice, aircraft->m_directory + "E-45-nor_1.jpg", TextureType::NORMAL);
 
-            Texture glassNormal(Graphics::GetDevice(), aircraft->m_directory + "E-45_glass_nor_.jpg", TextureType::NORMAL);
+            Texture glassNormal(RendererDevice, aircraft->m_directory + "E-45_glass_nor_.jpg", TextureType::NORMAL);
 
             // body
             aircraft->GetMeshes()[0].GetMaterial().SetAlbedoMap(bodyAlbedo);
@@ -105,9 +106,9 @@ void Cosmos::DesignScenes()
     {
         Light* light = new Light();
         //light->type = LightType::DIRECTIONAL_LIGHT;
-        light->pos = DirectX::SimpleMath::Vector3(-0.3f, 0.2f, -2.0f);
+        light->pos = Vector3(-0.3f, 0.2f, -2.0f);
         light->strength = 0.5f;
-        light->direction = DirectX::SimpleMath::Vector3(0.1f, -0.2f, 1.0f);
+        light->direction = Vector3(0.1f, -0.2f, 1.0f);
         light->coefficient = 2.2f;
         m_scene->AddLight(light);
     }
@@ -158,11 +159,11 @@ void Cosmos::RenderGUI()
         | ImGuiColorEditFlags_AlphaBar;
 
     if (ImGui::CollapsingHeader("Scene Objects"))
-    {
+    {\
         for (auto& object : m_scene->GetAllSceneObjects())
         {
             int updateFlag = 0;
-            if (ImGui::TreeNode(object->m_name.c_str()))
+            if (ImGui::TreeNode(object->GetName().c_str()))
             {
                 if (ImGui::SliderFloat3("Position", &object->m_transform.Location.x, -100.0f, 100.0f))
                 {
@@ -184,29 +185,29 @@ void Cosmos::RenderGUI()
                 updateFlag += ImGui::CheckboxFlags("Height Map", &object->GetConstBuffer().GetData().activeHeightMap, 1);
                 updateFlag += ImGui::CheckboxFlags("Normal Map", &object->GetConstBuffer().GetData().activeNormalMap, 1);
 
-                if (updateFlag) object->m_updateFlag = true;
+                if (updateFlag) object->SetUpdateFlag(true);
 
-                vector<Mesh> meshes = object->GetMeshes();
-                for (int i = 0; i < object->GetMeshes().size(); i++)
+                std::vector<Mesh>& meshes = object->GetMeshes();
+                for (int i = 0; i < meshes.size(); i++)
                 {
                     int meshUpdateFlag = 0;
-                    if (ImGui::TreeNode((string("Part ") + to_string(i)).c_str()))
+                    if (ImGui::TreeNode((std::string("Part ") + std::to_string(i)).c_str()))
                     {
-                        auto& material = meshes[i].GetMaterial().GetMaterialStatus();
+                        auto& materialData = meshes[i].GetMaterial().GetMaterialStatus();
                         if (!object->GetConstBuffer().GetData().activeAlbedoMap)
                         {
-                            meshUpdateFlag += ImGui::ColorPicker4("BaseColor", &material.baseColor.x, flags, NULL);
+                            meshUpdateFlag += ImGui::ColorPicker4("BaseColor", &materialData.baseColor.x, flags, NULL);
                         }
-                        meshUpdateFlag += ImGui::SliderFloat("Roughness", &material.roughness, 0.0f, 1.0f);
-                        meshUpdateFlag += ImGui::SliderFloat("Metaillic", &material.metallic, 0.0f, 1.0f);
+                        meshUpdateFlag += ImGui::SliderFloat("Roughness", &materialData.roughness, 0.0f, 1.0f);
+                        meshUpdateFlag += ImGui::SliderFloat("Metaillic", &materialData.metallic, 0.0f, 1.0f);
                         
                         ImGui::TreePop();
                     }
 
                     if (meshUpdateFlag)
                     {
-                        meshes[i].m_updateFlag = true;
-                        object->m_updateFlag = true;
+                        meshes[i].SetUpdateFlag(true);
+                        object->SetUpdateFlag(true);
                     }
 
                 }

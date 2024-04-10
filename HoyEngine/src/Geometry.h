@@ -1,45 +1,47 @@
 #pragma once
 
 #include "Object.h"
-
-class Geometry : public Object
+namespace Tofino
 {
-public:
-    Geometry(const std::string name = "Untitled", const bool isHittable = true) : Object(name, isHittable) {}
-    
-    // Loads geometry on object's mesh
-    virtual void LoadGeometry(const float scale = 1.0f) = 0;
-};
+    class Geometry : public Object
+    {
+    public:
+        Geometry(const std::string name = "Untitled", const bool isHittable = true) : Object(name, isHittable) {}
 
-class Triangle : public Geometry
-{
-public:
-    Triangle(const std::string name = "Untitled", const bool isHittable = true) : Geometry(name, isHittable) {}
+        // Loads geometry on object's mesh
+        virtual void LoadGeometry(const float scale = 1.0f) = 0;
+    };
 
-    void LoadGeometry(const float scale = 1.0f) override;
-};
+    class Triangle : public Geometry
+    {
+    public:
+        Triangle(const std::string name = "Untitled", const bool isHittable = true) : Geometry(name, isHittable) {}
 
-class Square : public Geometry
-{
-public:
-    Square(const std::string name = "Untitled", const bool isHittable = true) : Geometry(name, isHittable) {}
+        void LoadGeometry(const float scale = 1.0f) override;
+    };
 
-    void LoadGeometry(const float scale = 1.0f) override;
-};
+    class Square : public Geometry
+    {
+    public:
+        Square(const std::string name = "Untitled", const bool isHittable = true) : Geometry(name, isHittable) {}
 
-class Cube : public Geometry
-{
-public:
-    Cube(const std::string name = "Untitled", const bool isHittable = true) : Geometry(name, isHittable) {}
+        void LoadGeometry(const float scale = 1.0f) override;
+    };
 
-    void LoadGeometry(const float scale = 1.0f) override;
-};
+    class Cube : public Geometry
+    {
+    public:
+        Cube(const std::string name = "Untitled", const bool isHittable = true) : Geometry(name, isHittable) {}
 
-class Sphere : public Geometry
-{
-public:
-    Sphere(const std::string name = "Untitled", const bool isHittable = true) : Geometry(name, isHittable) {}
+        void LoadGeometry(const float scale = 1.0f) override;
+    };
 
-    void LoadGeometry(const float scale = 1.0f) override;
-};
+    class Sphere : public Geometry
+    {
+    public:
+        Sphere(const std::string name = "Untitled", const bool isHittable = true) : Geometry(name, isHittable) {}
 
+        void LoadGeometry(const float scale = 1.0f) override;
+    };
+
+}
