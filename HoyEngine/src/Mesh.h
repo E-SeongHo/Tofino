@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Material.h"
-#include "ConstantBuffer.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
 
@@ -20,10 +19,10 @@ namespace Tofino
         bool IsUpdateFlagSet() const { return m_updateFlag; }
         void SetUpdateFlag(bool flag) { m_updateFlag = flag; }
 
-        uint32_t GetIndexCount() { return m_indexBuffer.GetData().size(); }
+        uint32_t GetIndexCount() const { return m_indexBuffer.GetData().size(); }
 
-        VertexBuffer& GetVertexBuffer() { return m_vertexBuffer; }
-        IndexBuffer& GetIndexBuffer() { return m_indexBuffer; }
+        const VertexBuffer& GetVertexBuffer() const { return m_vertexBuffer; }
+        const IndexBuffer& GetIndexBuffer() const { return m_indexBuffer; }
         Material& GetMaterial() { return m_material; }
 
         void SetMaterialFactors(Vector4 baseColor, const float roughness, const float metallic);

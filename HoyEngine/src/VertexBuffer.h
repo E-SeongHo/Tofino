@@ -27,7 +27,7 @@ namespace Tofino
 
 		void Bind(ComPtr<ID3D11DeviceContext>& context) const override;
 
-		std::vector<Vertex>& GetData() { return m_vertices; }
+		const std::vector<Vertex>& GetData() const { return m_vertices; }
 
 	private:
 		std::vector<Vertex> m_vertices;

@@ -10,7 +10,7 @@ namespace Tofino
 	{
 	public:
 		IndexBuffer() = default;
-		IndexBuffer(std::vector<uint32_t> indices);
+		IndexBuffer(std::vector<uint32_t>& indices);
 		~IndexBuffer() override {}
 
 		void Init(ComPtr<ID3D11Device>& device) override;

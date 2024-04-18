@@ -1,13 +1,18 @@
 
 #include "Scene.h"
-#include "Graphics.h"
 
-#include <iostream>
+#include "Graphics.h"
+#include "Object.h"
+#include "Camera.h"
+#include "EnvMap.h"
+#include "ConstantBuffer.h"
+#include "ComponentManager.h"
 
 namespace Tofino
 {
 	Scene::Scene()
-		:m_constBuffer(ConstantBuffer<GlobalBuffer>(VERTEX_SHADER | GEOMETRY_SHADER | PIXEL_SHADER, 10))
+		: m_constBuffer(ConstantBuffer<GlobalBuffer>(VERTEX_SHADER | GEOMETRY_SHADER | PIXEL_SHADER, 10)),
+		  m_componentManager(std::make_unique<ComponentManager>())
 	{
 	}
 
@@ -44,14 +49,34 @@ namespace Tofino
 		}
 	}
 
-	void Scene::BindUpdateFunction(std::function<void(float)> updateFn)
+	void Scene::Init()
 	{
-		Fn_Update = updateFn;
-	}
+		assert(m_camera);
 
-	void Scene::SetName(std::string name)
-	{
-		m_name = name;
+		m_constBuffer.Init(RendererDevice);
+
+		auto& transforms = m_componentManager->GetContainer<TransformComponent>();
+		for(Object* obj : m_objects)
+		{
+			obj->Init(RendererDevice);
+
+			auto transform = transforms.Get(obj->GetID());
+			obj->UpdateWorldMatrix(Math::Transformer(transform));
+			obj->UpdateConstBuffer(RendererContext);
+		}
+
+		for (auto& meshComponent : m_componentManager->GetContainer<MeshComponent>())
+		{
+			for (auto& mesh : meshComponent.Meshes)
+			{
+				mesh.Init(RendererDevice);
+			}
+		}
+
+		if (m_skybox)
+		{
+			m_skybox->Init(RendererDevice);
+		}
 	}
 
 	void Scene::SetCamera(Camera* camera)
@@ -61,14 +86,8 @@ namespace Tofino
 		sceneConst.view = camera->GetViewMatrix().Transpose();
 		sceneConst.projection = camera->GetProjectionMatrix().Transpose();
 
-		if (m_camera == nullptr)
-		{
-			m_constBuffer.Init(RendererDevice);
-		}
-		else
-		{
-			m_constBuffer.Update(RendererContext);
-		}
+		// Change the render camera while rendering
+		if(m_camera) m_constBuffer.Update(RendererContext);
 
 		m_camera = camera;
 	}
@@ -86,19 +105,25 @@ namespace Tofino
 		object->Init(RendererDevice);
 	}
 
+	Object* Scene::CreateEmptyObject(const std::string& name)
+	{
+		Object* obj = new Object(this, name, true);
+
+		m_objects.push_back(obj);
+		return obj;
+	}
+
 	void Scene::AddSkybox(EnvMap* skybox)
 	{
+		assert(!m_skybox);
+
 		m_skybox = skybox;
-		skybox->Init(RendererDevice);
+		// skybox->Init(RendererDevice);
 	}
 
 	void Scene::Update(float deltaTime)
 	{
-		if (m_camera == nullptr)
-		{
-			std::cout << "Scene does not have a Camera" << std::endl;
-			return;
-		}
+		assert(m_camera);
 
 		if (Fn_Update) Fn_Update(deltaTime);
 
@@ -114,29 +139,36 @@ namespace Tofino
 		sceneConst.projection = m_camera->GetProjectionMatrix().Transpose();
 		m_constBuffer.Update(RendererContext);
 
-		for (Object* obj : m_objects)
+		// Process Changed data from GUI 
+		auto& transforms = m_componentManager->GetContainer<TransformComponent>();
+		for(Object* obj : m_objects)
+		{
+			if (obj->IsUpdateFlagSet()) // means either changed transform or texture mapping condition
+			{
+				auto transform = transforms.Get(obj->GetID());
+
+				obj->UpdateWorldMatrix(Math::Transformer(transform));
+				obj->UpdateConstBuffer(RendererContext);
+			}
+		}
+
+		// Meshes
+		auto& meshes = m_componentManager->GetContainer<MeshComponent>();
+		for(auto& meshComponent : meshes)
+		{
+			auto& meshVector = meshComponent.Meshes;
+			for(auto& mesh : meshVector)
+			{
+				if(mesh.IsUpdateFlagSet())
+				{
+					mesh.UpdateBuffer(RendererContext);
+				}
+			}
+		}
+
+		/*for (Object* obj : m_objects)
 		{
 			if (obj->IsUpdateFlagSet()) obj->UpdateBuffer(RendererContext);
-		}
-	}
-
-	Camera* Scene::GetCamera()
-	{
-		return m_camera;
-	}
-
-	std::vector<Object*> Scene::GetAllSceneObjects()
-	{
-		return m_objects; // RVO : move semantics
-	}
-
-	EnvMap* Scene::GetSkybox()
-	{
-		return m_skybox;
-	}
-
-	ConstantBuffer<GlobalBuffer>& Scene::GetSceneConstBuffer()
-	{
-		return m_constBuffer;
+		}*/
 	}
 }

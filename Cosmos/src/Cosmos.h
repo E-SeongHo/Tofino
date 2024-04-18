@@ -1,7 +1,8 @@
 #pragma once
 
 #include <Application.h>
-#include <Scene.h>
+
+class Tofino::Scene;
 
 class Cosmos : public Tofino::Application
 {

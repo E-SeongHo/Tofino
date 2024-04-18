@@ -5,6 +5,8 @@
 #include <d3dcompiler.h>
 #include <directxtk/DDSTextureLoader.h>
 #include <vector>
+#include <iostream>
+#include <string>
 
 #include "Texture.h"
 

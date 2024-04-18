@@ -5,19 +5,21 @@
 #include <ctime>
 #include <functional>
 
-#include "Graphics.h"
-#include "Input.h"
-
 #ifndef NOMINMAX
 	#define NOMINMAX
 #endif
 
 namespace Tofino
 {
+	class Graphics;
+	class Input;
+	class Scene;
+
 	enum class AppMode
 	{
 		EDIT, // default
 		TRAVERSAL,
+		PLAY
 	};
 
 	class Application

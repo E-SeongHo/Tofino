@@ -2,7 +2,7 @@
 
 namespace Tofino
 {
-    IndexBuffer::IndexBuffer(std::vector<uint32_t> indices)
+    IndexBuffer::IndexBuffer(std::vector<uint32_t>& indices)
         : m_indices(std::move(indices))
     {
     }

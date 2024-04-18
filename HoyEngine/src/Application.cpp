@@ -3,12 +3,15 @@
 #include <imgui.h>
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
-#include <tuple>
 
 #include "Application.h"
 #include "SimpleMath.h"
 #include "Scene.h"
 #include "ShaderManager.h"
+#include "Camera.h"
+#include "Object.h"
+#include "Input.h"
+#include "Graphics.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -171,6 +174,8 @@ namespace Tofino
 			AdjustSceneCamera(deltaTime);
 			m_input->CenterCursor(m_window, m_width, m_height);
 			break;
+		case AppMode::PLAY:
+			break;
 		}
 
 		m_currentScene->Update(deltaTime);
@@ -183,7 +188,7 @@ namespace Tofino
 		if (m_appMode == appMode) return;
 
 		m_appMode = appMode;
-		if (m_appMode == AppMode::TRAVERSAL)
+		if (m_appMode == AppMode::TRAVERSAL || m_appMode == AppMode::PLAY)
 		{
 			m_input->CenterCursor(m_window, m_width, m_height);
 			ShowCursor(false);
@@ -199,6 +204,7 @@ namespace Tofino
 		if (m_input->IsKeyPressed(VK_ESCAPE)) PostMessage(m_window, WM_DESTROY, 0, 0);
 		if (m_input->IsKeyPressed('F')) ChangeAppMode(AppMode::TRAVERSAL);
 		if (m_input->IsKeyPressed('E')) ChangeAppMode(AppMode::EDIT);
+		if (m_input->IsKeyPressed('P')) ChangeAppMode(AppMode::PLAY);
 	}
 
 	void Application::MouseTranslateObject(float deltaTime)
@@ -240,10 +246,13 @@ namespace Tofino
 				Vector3 hitPoint = p0 + direction * distance;
 				Vector3 dv = hitPoint - prevHit;
 
-				pickingObject->UpdateWorldMatrix(pickingObject->GetWorldMatrix() * Matrix::CreateTranslation(dv));
+				pickingObject->GetComponent<TransformComponent>().Translation += dv;
+				pickingObject->SetUpdateFlag(true);
+
+				/*pickingObject->UpdateWorldMatrix(pickingObject->GetWorldMatrix() * Matrix::CreateTranslation(dv));
 				pickingObject->m_transform.Location += dv;
 				pickingObject->UpdateBuffer(RendererContext);
-				pickingObject->m_boundingSphere.Center = pickingObject->m_boundingSphere.Center + dv;
+				pickingObject->m_boundingSphere.Center = pickingObject->m_boundingSphere.Center + dv;*/
 
 				prevHit = hitPoint;
 
@@ -251,17 +260,20 @@ namespace Tofino
 				int wheel = m_input->GetMouseWheelAndReset();
 				if (wheel != 0 && picking && pickingObject != nullptr)
 				{
-					const int speed = 2;
+					constexpr int speed = 2;
 					int movement = wheel / 120;
 					Vector3 dv = pickingObject->m_boundingSphere.Center - cam->GetOrigin();
 					dv.Normalize();
 					dv = dv * movement * speed;
 
-					Matrix m = Matrix::CreateTranslation(dv);
+					pickingObject->GetComponent<TransformComponent>().Translation += dv;
+					pickingObject->SetUpdateFlag(true);
+
+					/*Matrix m = Matrix::CreateTranslation(dv);
 					pickingObject->UpdateWorldMatrix(pickingObject->GetWorldMatrix() * m);
 					pickingObject->m_transform.Location += dv;
 					pickingObject->UpdateBuffer(RendererContext);
-					pickingObject->m_boundingSphere.Center = pickingObject->m_boundingSphere.Center + dv;
+					pickingObject->m_boundingSphere.Center = pickingObject->m_boundingSphere.Center + dv;*/
 
 					Vector3 n = -cam->GetDirection();
 					n.Normalize();
@@ -288,9 +300,9 @@ namespace Tofino
 				for (auto& object : m_currentScene->GetAllSceneObjects())
 				{
 					if (!object->hitEnabled) continue;
+
 					float distance = 0.0f;
 					bool hit = ray.Intersects(object->m_boundingSphere, distance);
-
 					if (hit)
 					{
 						if (!picking)

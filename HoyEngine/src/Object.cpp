@@ -1,30 +1,67 @@
 
-#include "SimpleMath.h"
 #include "Object.h"
+#include "HashStringManager.h"
+
+#include "SimpleMath.h"
+#include "Mesh.h"
+
+#include <iostream>
 
 namespace Tofino
 {
-
-	Object::Object(const std::string name, const bool isHittable)
+	Object::Object(Scene* scene, const std::string name, const bool isHittable)
 		: m_constBuffer(ConstantBuffer<ModelBuffer>(VERTEX_SHADER | PIXEL_SHADER, 0))
 	{
 		hitEnabled = isHittable;
 		m_name = name;
+
+		int index = 0;
+		while (!HashStringManager::IsAvailableName(m_name))
+		{
+			m_name = name + std::to_string(index++);
+			std::cout << m_name << std::endl;
+		}
+
+		m_id = HashStringManager::GenerateHash(m_name);
+		m_scene = scene;
 	}
 
 	void Object::Init(ComPtr<ID3D11Device>& device)
 	{
+		using namespace DirectX;
+
+		assert(HasComponent<TransformComponent>());
+
 		m_constBuffer.Init(device);
 
-		for (auto& mesh : m_meshes)
+		// Assigns bounding sphere
+		if(HasComponent<MeshComponent>())
 		{
-			mesh.Init(device);
-		}
-	}
+			Vector3 vmin(1000, 1000, 1000);
+			Vector3 vmax(-1000, -1000, -1000);
 
-	void Object::Bind(ComPtr<ID3D11DeviceContext>& context) const
-	{
-		m_constBuffer.Bind(context);
+			auto& meshes = GetComponent<MeshComponent>().Meshes;
+
+			for (auto& mesh : meshes)
+			{
+				for (auto& v : mesh.GetVertexBuffer().GetData())
+				{
+					vmin.x = XMMin(vmin.x, v.pos.x);
+					vmin.y = XMMin(vmin.y, v.pos.y);
+					vmin.z = XMMin(vmin.z, v.pos.z);
+					vmax.x = XMMax(vmax.x, v.pos.x);
+					vmax.y = XMMax(vmax.y, v.pos.y);
+					vmax.z = XMMax(vmax.z, v.pos.z);
+				}
+			}
+
+			const float dx = vmax.x - vmin.x, dy = vmax.y - vmin.y, dz = vmax.z - vmin.z;
+			const float r = XMMin(XMMin(dx, dy), dz) / 2.0f;
+
+			const Vector3 center = GetComponent<TransformComponent>().Translation;
+			m_boundingSphere = BoundingSphere(center, r);
+		}
+
 	}
 
 	Matrix Object::GetWorldMatrix()
@@ -32,7 +69,7 @@ namespace Tofino
 		return m_constBuffer.GetData().world.Transpose();
 	}
 
-	void Object::UpdateWorldMatrix(Matrix worldRow)
+	void Object::UpdateWorldMatrix(const Matrix worldRow)
 	{
 		Matrix worldColumn = worldRow.Transpose();
 
@@ -41,54 +78,25 @@ namespace Tofino
 		m_constBuffer.GetData().worldIT.Translation(Vector3(0.0f));
 		m_constBuffer.GetData().worldIT.Invert().Transpose();
 
+		// hack : will be completed after build BVH system
+		m_boundingSphere.Center = worldRow.Translation();
+
+		Vector3 scale = { worldRow._11, worldRow._22, worldRow._33 };
+
+		static float prevScale = 1.0f;
+		float currentMaxScale = std::max(std::max(scale.x, scale.y), scale.z);
+		float scaleFactor = currentMaxScale / prevScale;
+		prevScale = currentMaxScale;
+
+		m_boundingSphere.Radius = m_boundingSphere.Radius * scaleFactor;
+
 		m_updateFlag = true;
 	}
 
-	//Transform& Object::GetTransform()
-	//{
-	//	return m_transform;
-	//}
-
-	void Object::SetLocation(Vector3 location)
-	{	// set position of bounding sphere as well
-		m_transform.Location = location;
-		m_boundingSphere.Center = location;
-
-		Matrix m = GetWorldMatrix();
-		m.Translation(location); // switch translation term
-		UpdateWorldMatrix(m);
-	}
-
-	void Object::SetRotation(Vector3 rotation)
-	{	// Rotates about X - Y - Z order
-		m_transform.Rotation = rotation;
-
-		Matrix m = Matrix(); // Identity Matrix
-
-		const Matrix X = Matrix::CreateRotationX(DirectX::XMConvertToRadians(rotation.x));
-		const Matrix Y = Matrix::CreateRotationY(DirectX::XMConvertToRadians(rotation.y));
-		const Matrix Z = Matrix::CreateRotationZ(DirectX::XMConvertToRadians(rotation.z));
-
-		m = m * X * Y * Z;
-		m.Translation(Vector3(m_transform.Location));
-		UpdateWorldMatrix(m);
-	}
-
-	void Object::SetScale(Vector3 scale)
+	void Object::UpdateWorldMatrix()
 	{
-		m_transform.Scale = scale;
-		Matrix m = GetWorldMatrix();
-		m._11 = scale.x;
-		m._22 = scale.y;
-		m._33 = scale.z;
+		assert(HasComponent<TransformComponent>());
 
-		// hack : will be completed after build BVH system
-		float maxScale = std::max(std::max(scale.x, scale.y), scale.z);
-		m_boundingSphere.Radius = m_boundingSphere.Radius * maxScale;
-
-		std::cout << (int)m_boundingSphere.Radius << std::endl;
-
-		UpdateWorldMatrix(m);
 	}
 
 	void Object::Update(float deltaTime)
@@ -100,51 +108,27 @@ namespace Tofino
 		return m_constBuffer;
 	}
 
-	void Object::UpdateBuffer(ComPtr<ID3D11DeviceContext>& context)
+	void Object::UpdateConstBuffer(ComPtr<ID3D11DeviceContext>& context)
 	{
 		m_constBuffer.Update(context);
-
-		for (auto& mesh : m_meshes)
-		{
-			if (mesh.IsUpdateFlagSet()) mesh.UpdateBuffer(context);
-		}
-
 		m_updateFlag = false;
 	}
 
 	void Object::SetMeshMaterialFactors(Vector4 baseColor, const float roughness, const float metallic, const int partNumber)
 	{
-		if (partNumber >= 0 && partNumber < m_meshes.size())
+		std::vector<Mesh>& meshes = GetComponent<MeshComponent>().Meshes;
+		if (partNumber >= 0 && partNumber < meshes.size())
 		{
-			m_meshes[partNumber].SetMaterialFactors(baseColor, roughness, metallic);
+			meshes[partNumber].SetMaterialFactors(baseColor, roughness, metallic);
 		}
 	}
 
 	void Object::SetAllMeshMaterialFactors(const Vector4 baseColor, const float roughness, const float metallic)
 	{
-		for (auto& mesh : m_meshes)
+		std::vector<Mesh>& meshes = GetComponent<MeshComponent>().Meshes;
+		for (auto& mesh : meshes)
 		{
 			mesh.SetMaterialFactors(baseColor, roughness, metallic);
 		}
-	}
-
-	void Object::SetUpdateFlag(bool flag)
-	{
-		m_updateFlag = flag;
-	}
-
-	bool Object::IsUpdateFlagSet() const
-	{
-		return m_updateFlag;
-	}
-
-	std::string Object::GetName() const
-	{
-		return m_name;
-	}
-
-	std::vector<Mesh>& Object::GetMeshes()
-	{
-		return m_meshes;
 	}
 }

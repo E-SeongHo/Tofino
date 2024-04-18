@@ -1,16 +1,20 @@
 #pragma once
 
-#include "Model.h"
-#include "Camera.h"
-#include "EnvMap.h"
-#include "Light.h"
-
 #include <vector>
 #include <functional>
 #include <string>
 
+#include "Light.h"
+#include "SimpleMath.h"
+#include "ConstantBuffer.h"
+#include "ComponentManager.h"
+
 namespace Tofino
 {
+	class Object;
+	class Camera;
+	class EnvMap;
+
 	// Global for scene
 	struct GlobalBuffer
 	{   // Make sure must be a column matrix
@@ -28,9 +32,11 @@ namespace Tofino
 		Scene();
 		~Scene();
 
-		void BindUpdateFunction(std::function<void(float)> updateFn);
+		void Init();
 
-		void SetName(std::string name);
+		void BindUpdateFunction(std::function<void(float)> updateFn) { Fn_Update = updateFn; }
+
+		void SetName(const std::string& name) { m_name = name; };
 
 		void SetCamera(Camera* camera);
 
@@ -38,19 +44,44 @@ namespace Tofino
 
 		void AddObject(Object* object);
 
+		Object* CreateEmptyObject(const std::string& name);
+
 		void AddSkybox(EnvMap* skybox);
 
 		void Update(float deltaTime);
 
-		Camera* GetCamera();
+		Camera* GetCamera() const { return m_camera; }
 
-		std::vector<Object*> GetAllSceneObjects();
+		std::vector<Object*> GetAllSceneObjects() { return m_objects; }
 
-		EnvMap* GetSkybox();
+		EnvMap* GetSkybox() const { return m_skybox; }
 
-		ConstantBuffer<GlobalBuffer>& GetSceneConstBuffer();
+		ConstantBuffer<GlobalBuffer>& GetSceneConstBuffer() { return m_constBuffer; }
+
+		template<typename T>
+		void AddComponentOf(const ObjectID objID, const T componentData)
+		{
+			assert(m_componentManager);
+
+			m_componentManager->AddComponent(objID, componentData);
+		}
+
+		template<typename T>
+		T& GetComponentOf(const ObjectID objID)
+		{
+			return m_componentManager->GetComponent<T>(objID);
+		}
+
+		template<typename T>
+		bool HasComponentOf(const ObjectID objID)
+		{
+			return m_componentManager->HasComponent<T>(objID);
+		}
+
 
 	private:
+		friend class Graphics;
+
 		std::function<void(float dt)> Fn_Update;
 
 		std::string m_name;
@@ -65,6 +96,8 @@ namespace Tofino
 		ConstantBuffer<GlobalBuffer> m_constBuffer;
 
 		EnvMap* m_skybox = nullptr;
+
+		std::unique_ptr<ComponentManager> m_componentManager;
 	};
 
 }

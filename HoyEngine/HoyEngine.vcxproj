@@ -23,27 +23,33 @@
     <ClCompile Include="src\EnvMap.cpp" />
     <ClCompile Include="src\Input.cpp" />
     <ClCompile Include="src\Material.cpp" />
+    <ClCompile Include="src\MeshLoader.cpp" />
     <ClCompile Include="src\Scene.cpp" />
     <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\Geometry.cpp" />
     <ClCompile Include="src\Graphics.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Mesh.cpp" />
-    <ClCompile Include="src\Model.cpp" />
     <ClCompile Include="src\Object.cpp" />
     <ClCompile Include="src\ShaderLoader.cpp" />
     <ClCompile Include="src\ShaderManager.cpp" />
     <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\SimpleMath.cpp" />
     <ClCompile Include="src\VertexBuffer.cpp" />
     <ClCompile Include="src\Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ComponentContainer.h" />
+    <ClInclude Include="src\ComponentManager.h" />
+    <ClInclude Include="src\Components.h" />
+    <ClInclude Include="src\HashStringManager.h" />
     <ClInclude Include="src\Helper.h" />
     <ClInclude Include="src\IndexBuffer.h" />
     <ClInclude Include="src\Buffer.h" />
     <ClInclude Include="src\Input.h" />
     <ClInclude Include="src\ConstantBuffer.h" />
     <ClInclude Include="src\EnvMap.h" />
+    <ClInclude Include="src\MeshLoader.h" />
     <ClInclude Include="src\Scene.h" />
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\Geometry.h" />
@@ -51,13 +57,11 @@
     <ClInclude Include="src\Light.h" />
     <ClInclude Include="src\Material.h" />
     <ClInclude Include="src\Mesh.h" />
-    <ClInclude Include="src\Model.h" />
     <ClInclude Include="src\Object.h" />
     <ClInclude Include="src\ShaderLoader.h" />
     <ClInclude Include="src\ShaderManager.h" />
     <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\SimpleMath.h" />
-    <ClInclude Include="src\Transform.h" />
     <ClInclude Include="src\VertexBuffer.h" />
     <ClInclude Include="src\Texture.h" />
   </ItemGroup>

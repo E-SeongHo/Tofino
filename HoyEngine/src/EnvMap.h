@@ -1,13 +1,17 @@
 #pragma once
 
 #include <d3d11.h>
-#include <d3dcompiler.h>
 #include <wrl.h> 
+#include <string>
 
-#include "Geometry.h"
+#include "VertexBuffer.h"
+#include "IndexBuffer.h"
+#include "Texture.h"
 
 namespace Tofino
 {
+    class Geometry;
+
     using Microsoft::WRL::ComPtr;
 
     class EnvMap
@@ -19,7 +23,7 @@ namespace Tofino
         void Init(ComPtr<ID3D11Device>& device);
         void Bind(ComPtr<ID3D11DeviceContext>& context) const;
         void BindIBLSRVs(ComPtr<ID3D11DeviceContext>& context) const;
-        uint32_t GetIndexCount(){ return m_indexBuffer.GetData().size(); }
+        uint32_t GetIndexCount() const { return m_indexBuffer.GetData().size(); }
 
     private:
         std::string m_name;

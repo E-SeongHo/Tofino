@@ -1,19 +1,20 @@
-#include "EnvMap.h"
-#include "Geometry.h"
 
 #include <string>
 #include <DirectXCollision.h>
+
+#include "EnvMap.h"
+#include "Geometry.h"
+#include "Mesh.h"
+#include "MeshLoader.h"
 
 namespace Tofino
 {
     EnvMap::EnvMap(const std::string name, const std::string filepath)
         : m_name(name), m_filepath(filepath)
     {
-        Cube shape;
-        shape.LoadGeometry(500.0f);
+        // trivial copy overhead 
+        Mesh meshData = MeshLoader::LoadCube(500.0f)[0];
 
-        // hack : trivial copy overhead 
-        Mesh& meshData = shape.GetMeshes()[0];
         std::vector<Vertex> vertices(meshData.GetVertexBuffer().GetData());
         std::vector<uint32_t> indices(meshData.GetIndexBuffer().GetData());
 

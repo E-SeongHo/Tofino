@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Object.h"
+
 namespace Tofino
 {
     class Geometry : public Object

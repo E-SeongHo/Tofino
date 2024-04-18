@@ -8,13 +8,8 @@ namespace Tofino
 {
 	using Microsoft::WRL::ComPtr;
 
-	// Singleton
 	class ShaderManager
 	{
-	private:
-		ShaderManager() {}
-		ShaderManager(const ShaderManager&) = delete;
-		ShaderManager& operator=(const ShaderManager&) = delete;
 
 	public:
 		static ShaderManager& GetInstance()
@@ -22,6 +17,8 @@ namespace Tofino
 			static ShaderManager s;
 			return s;
 		}
+
+		void InitShaders(ComPtr<ID3D11Device>& device);
 
 	public:
 		ComPtr<ID3D11VertexShader> basicVS;
@@ -38,6 +35,10 @@ namespace Tofino
 		ComPtr<ID3D11VertexShader> copyVS;
 		ComPtr<ID3D11PixelShader> toneMappingPS;
 
-		void InitShaders(ComPtr<ID3D11Device>& device);
+	private:
+		ShaderManager() {}
+		ShaderManager(const ShaderManager&) = delete;
+		ShaderManager& operator=(const ShaderManager&) = delete;
+
 	};
 }

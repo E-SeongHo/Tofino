@@ -9,6 +9,10 @@
 #include "EnvMap.h"
 #include "Scene.h"
 #include "ShaderManager.h"
+#include "Geometry.h"
+#include "Mesh.h"
+#include "Components.h"
+#include "MeshLoader.h"
 
 namespace Tofino
 {
@@ -30,9 +34,12 @@ namespace Tofino
 
         InitD3D(m_width, m_height);
 
-        m_copySquare = new Square("CopySquare", false);
+        m_copySquareMesh = new Mesh(MeshLoader::LoadSquare()[0]);
+        m_copySquareMesh->Init(m_device);
+
+        /*m_copySquare = new Square("CopySquare", false);
         m_copySquare->LoadGeometry();
-        m_copySquare->Init(m_device);
+        m_copySquare->Init(m_device);*/
 
         ShaderManager::GetInstance().InitShaders(m_device);
 
@@ -230,7 +237,7 @@ namespace Tofino
     {
         object->Bind(m_context);
 
-        std::vector<Mesh>& objMeshes = object->GetMeshes();
+        std::vector<Mesh>& objMeshes = object->GetComponent<MeshComponent>().Meshes;
 
         for (Mesh& mesh : objMeshes)
         {
@@ -243,7 +250,7 @@ namespace Tofino
     {
         object->Bind(m_context);
 
-        std::vector<Mesh>& objMeshes = object->GetMeshes();
+        std::vector<Mesh>& objMeshes = object->GetComponent<MeshComponent>().Meshes;
 
         for (Mesh& mesh : objMeshes)
         {
@@ -288,9 +295,10 @@ namespace Tofino
         scene->GetSceneConstBuffer().Bind(m_context);
         scene->GetSkybox()->BindIBLSRVs(m_context); // for objects
 
-        for (auto& object : scene->GetAllSceneObjects())
+        // TODO: Batch Rendering (take advantage of ECS)
+    	for (auto& object : scene->GetAllSceneObjects()) 
         {
-            Draw(object);
+    		Draw(object);
         }
 
         m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
@@ -342,18 +350,16 @@ namespace Tofino
         m_context->PSSetShader(ShaderManager::GetInstance().toneMappingPS.Get(), 0, 0);
         m_context->PSSetShaderResources(0, 1, m_hdrResolvedSRV.GetAddressOf());
 
-        //Draw(m_copySquare);
-        m_copySquare->GetConstBuffer().Bind(m_context);
         UINT stride = sizeof(Vertex);
         UINT offset = 0;
-        m_context->IASetVertexBuffers(0, 1, m_copySquare->GetMeshes()[0].GetVertexBuffer().GetBuffer().GetAddressOf(), &stride, &offset);
-        m_context->IASetIndexBuffer(m_copySquare->GetMeshes()[0].GetIndexBuffer().GetBuffer().Get(), DXGI_FORMAT_R32_UINT, 0);
-        m_context->DrawIndexed(m_copySquare->GetMeshes()[0].GetIndexCount(), 0, 0);
+        m_context->IASetVertexBuffers(0, 1, m_copySquareMesh->GetVertexBuffer().GetBuffer().GetAddressOf(), &stride, &offset);
+        m_context->IASetIndexBuffer(m_copySquareMesh->GetIndexBuffer().GetBuffer().Get(), DXGI_FORMAT_R32_UINT, 0);
+        m_context->DrawIndexed(m_copySquareMesh->GetIndexCount(), 0, 0); 
     }
 
     Graphics::~Graphics()
     {
-        delete m_copySquare;
+        delete m_copySquareMesh;
     }
 
 }

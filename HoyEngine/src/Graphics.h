@@ -1,18 +1,14 @@
 #pragma once
 
 #include <d3d11.h>
-#include <d3dcompiler.h>
 #include <wrl.h> 
 #include <windows.h>
-#include <exception>
-#include <vector>
-
-#include "SimpleMath.h"
 
 namespace Tofino
 {
     class Scene;
     class Geometry;
+    class Mesh;
     class Object;
 
     using Microsoft::WRL::ComPtr;
@@ -25,6 +21,8 @@ namespace Tofino
             return s;
         }
         ~Graphics();
+        Graphics(const Graphics& other) = delete;
+        Graphics& operator=(const Graphics& other) = delete;
 
         bool Init(HWND hWnd, const int screenWidth, const int screenHeight);
         bool InitD3D(const int screenWidth, const int screenHeight);
@@ -32,7 +30,7 @@ namespace Tofino
 
         void RenderScene(Scene* scene);
 
-        void Present() { m_swapChain->Present(1, 0); }
+        void Present() const { m_swapChain->Present(1, 0); }
         ComPtr<ID3D11Device>& GetDevice() { return m_device; }
         ComPtr<ID3D11DeviceContext>& GetContext() { return m_context; }
 
@@ -45,8 +43,6 @@ namespace Tofino
 
     private:
         Graphics() = default;
-        Graphics(const Graphics&) = delete;
-        Graphics& operator=(const Graphics&) = delete;
 
         void Draw(Object* object);
         void DrawNormal(Object* object);
@@ -83,6 +79,7 @@ namespace Tofino
         D3D11_VIEWPORT m_screenViewport;
 
         // Tone Mapping
+        Mesh* m_copySquareMesh = nullptr;
         Geometry* m_copySquare = nullptr; // square mesh for copy
         ComPtr<ID3D11RasterizerState> m_toneState;
 
