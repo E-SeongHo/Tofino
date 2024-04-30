@@ -3,7 +3,6 @@
 #include <DirectXCollision.h>
 
 #include "EnvMap.h"
-#include "Geometry.h"
 #include "Mesh.h"
 #include "MeshLoader.h"
 

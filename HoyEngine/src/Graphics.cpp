@@ -9,8 +9,8 @@
 #include "EnvMap.h"
 #include "Scene.h"
 #include "ShaderManager.h"
-#include "Geometry.h"
 #include "Mesh.h"
+#include "Object.h"
 #include "Components.h"
 #include "MeshLoader.h"
 
@@ -36,10 +36,6 @@ namespace Tofino
 
         m_copySquareMesh = new Mesh(MeshLoader::LoadSquare()[0]);
         m_copySquareMesh->Init(m_device);
-
-        /*m_copySquare = new Square("CopySquare", false);
-        m_copySquare->LoadGeometry();
-        m_copySquare->Init(m_device);*/
 
         ShaderManager::GetInstance().InitShaders(m_device);
 
@@ -90,7 +86,6 @@ namespace Tofino
         }
 
         // Create backbuffer RenderTargetView
-        //ComPtr<ID3D11Texture2D> backBuffer; // m_backBuffer·Î °ü¸®
 
         ThrowIfFailed(m_swapChain->GetBuffer(0, IID_PPV_ARGS(m_backBuffer.GetAddressOf())));
         ThrowIfFailed(m_device->CreateRenderTargetView(m_backBuffer.Get(), NULL, m_backBufferRTV.GetAddressOf()));
@@ -293,12 +288,12 @@ namespace Tofino
         m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
         scene->GetSceneConstBuffer().Bind(m_context);
-        scene->GetSkybox()->BindIBLSRVs(m_context); // for objects
+        scene->GetSkybox().BindIBLSRVs(m_context); // for objects
 
         // TODO: Batch Rendering (take advantage of ECS)
-    	for (auto& object : scene->GetAllSceneObjects()) 
+    	for (const auto& object : scene->m_objects) 
         {
-    		Draw(object);
+    		Draw(object.get());
         }
 
         m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
@@ -310,7 +305,7 @@ namespace Tofino
 
         /*for (auto& object : scene->GetAllSceneObjects())
         {
-            DrawNormal(object);
+            DrawNormal(object.get());
         }*/
 
         m_context->GSSetShader(nullptr, 0, 0);
@@ -324,8 +319,8 @@ namespace Tofino
         m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 
         scene->GetSceneConstBuffer().Bind(m_context);
-        scene->GetSkybox()->Bind(m_context);
-        m_context->DrawIndexed(scene->GetSkybox()->GetIndexCount(), 0, 0);
+        scene->GetSkybox().Bind(m_context);
+        m_context->DrawIndexed(scene->GetSkybox().GetIndexCount(), 0, 0);
 
         // Resolve
         m_context->ResolveSubresource(m_hdrResolvedBuffer.Get(), 0, m_hdrBuffer.Get(),

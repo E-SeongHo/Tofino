@@ -1,11 +1,13 @@
 
+#include <imgui.h>
+#include <iostream>
+
 #include "Object.h"
 #include "HashStringManager.h"
 
 #include "SimpleMath.h"
 #include "Mesh.h"
 
-#include <iostream>
 
 namespace Tofino
 {
@@ -19,7 +21,7 @@ namespace Tofino
 		while (!HashStringManager::IsAvailableName(m_name))
 		{
 			m_name = name + std::to_string(index++);
-			std::cout << m_name << std::endl;
+			std::cout << name << " -> " << m_name << std::endl;
 		}
 
 		m_id = HashStringManager::GenerateHash(m_name);
@@ -28,45 +30,69 @@ namespace Tofino
 
 	void Object::Init(ComPtr<ID3D11Device>& device)
 	{
-		using namespace DirectX;
-
-		assert(HasComponent<TransformComponent>());
-
 		m_constBuffer.Init(device);
 
-		// Assigns bounding sphere
-		if(HasComponent<MeshComponent>())
-		{
-			Vector3 vmin(1000, 1000, 1000);
-			Vector3 vmax(-1000, -1000, -1000);
+		if (!HasComponent<TransformComponent>()) 
+			AddComponent<TransformComponent>(TransformComponent());
 
-			auto& meshes = GetComponent<MeshComponent>().Meshes;
+		auto& transform = GetComponent<TransformComponent>();
+		const Vector3 center = transform.Translation;
+		const float r = std::max(std::max(transform.Scale.x, transform.Scale.y), transform.Scale.z);
+		m_boundingSphere = DirectX::BoundingSphere(center, r);
 
-			for (auto& mesh : meshes)
-			{
-				for (auto& v : mesh.GetVertexBuffer().GetData())
-				{
-					vmin.x = XMMin(vmin.x, v.pos.x);
-					vmin.y = XMMin(vmin.y, v.pos.y);
-					vmin.z = XMMin(vmin.z, v.pos.z);
-					vmax.x = XMMax(vmax.x, v.pos.x);
-					vmax.y = XMMax(vmax.y, v.pos.y);
-					vmax.z = XMMax(vmax.z, v.pos.z);
-				}
-			}
-
-			const float dx = vmax.x - vmin.x, dy = vmax.y - vmin.y, dz = vmax.z - vmin.z;
-			const float r = XMMin(XMMin(dx, dy), dz) / 2.0f;
-
-			const Vector3 center = GetComponent<TransformComponent>().Translation;
-			m_boundingSphere = BoundingSphere(center, r);
-		}
-
+		m_updateFlag = true;
+		/*UpdateWorldMatrix(Math::Transformer(transform));
+		UpdateConstBuffer(RendererContext);*/
 	}
 
-	Matrix Object::GetWorldMatrix()
+	void Object::RenderGUI()
 	{
-		return m_constBuffer.GetData().world.Transpose();
+		static ImGuiColorEditFlags flags = 
+			ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR | 
+			ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_AlphaBar;
+
+		if (ImGui::TreeNode(m_name.c_str()))
+		{
+			auto& transform = GetComponent<TransformComponent>();
+
+			m_updateFlag += ImGui::SliderFloat3("Position", &transform.Translation.x, -100.0f, 100.0f);
+			m_updateFlag += ImGui::SliderFloat3("Rotation", &transform.Rotation.x, -360.0f, 360.0f);
+			m_updateFlag += ImGui::SliderFloat3("Scale", &transform.Scale.x, 0.0f, 10.0f);
+
+			m_updateFlag += ImGui::CheckboxFlags("Albedo Map", &m_constBuffer.GetData().activeAlbedoMap, 1);
+			m_updateFlag += ImGui::CheckboxFlags("Height Map", &m_constBuffer.GetData().activeHeightMap, 1);
+			m_updateFlag += ImGui::CheckboxFlags("Normal Map", &m_constBuffer.GetData().activeNormalMap, 1);
+
+			if(HasComponent<CameraComponent>())
+			{
+				auto& camera = GetComponent<CameraComponent>().Camera;
+				ImGui::SliderFloat3("Camera", &camera.GetOrigin().x, -100.0f, 100.0f);
+			}
+
+			if(HasComponent<MeshComponent>())
+			{
+				auto& meshes = GetComponent<MeshComponent>().Meshes;
+				for(int i = 0; i < meshes.size(); i++)
+				{
+					int meshUpdateFlag = 0;
+					if (ImGui::TreeNode((std::string("Part ") + std::to_string(i)).c_str()))
+					{
+						auto& materialData = meshes[i].GetMaterial().GetMaterialStatus();
+						if (!m_constBuffer.GetData().activeAlbedoMap)
+						{
+							meshUpdateFlag += ImGui::ColorPicker4("BaseColor", &materialData.baseColor.x, flags, NULL);
+						}
+						meshUpdateFlag += ImGui::SliderFloat("Roughness", &materialData.roughness, 0.0f, 1.0f);
+						meshUpdateFlag += ImGui::SliderFloat("Metaillic", &materialData.metallic, 0.0f, 1.0f);
+
+						ImGui::TreePop();
+					}
+
+					if (meshUpdateFlag) meshes[i].SetUpdateFlag(true);
+				}
+				ImGui::TreePop();
+			}
+		}
 	}
 
 	void Object::UpdateWorldMatrix(const Matrix worldRow)
@@ -83,13 +109,9 @@ namespace Tofino
 
 		Vector3 scale = { worldRow._11, worldRow._22, worldRow._33 };
 
-		static float prevScale = 1.0f;
 		float currentMaxScale = std::max(std::max(scale.x, scale.y), scale.z);
-		float scaleFactor = currentMaxScale / prevScale;
-		prevScale = currentMaxScale;
 
-		m_boundingSphere.Radius = m_boundingSphere.Radius * scaleFactor;
-
+		m_boundingSphere.Radius = currentMaxScale;
 		m_updateFlag = true;
 	}
 

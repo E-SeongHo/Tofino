@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Camera.h"
 #include "SimpleMath.h"
 #include "Mesh.h"
 
@@ -19,6 +20,15 @@ namespace Tofino
 		std::vector<Mesh> Meshes;
 	};
 
+	struct CameraComponent
+	{
+		Camera Camera;
+	};
+
+	struct PhysicsComponent
+	{
+		Vector3 Velocity = { 0.0f, 0.0f, 0.0f };
+	};
 
 	// Template meta programming
 	// Defining Component Group and expands with parameter pack
@@ -27,5 +37,5 @@ namespace Tofino
 	{
 	};
 
-	using AllComponents = ComponentGroup<TransformComponent, MeshComponent>;
+	using AllComponents = ComponentGroup<TransformComponent, MeshComponent, CameraComponent, PhysicsComponent>;
 }

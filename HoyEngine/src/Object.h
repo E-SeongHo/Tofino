@@ -2,11 +2,15 @@
 
 #include <string>
 
-#include "ConstantBuffer.h"
 #include "Scene.h"
+#include "ConstantBuffer.h"
+
+using Microsoft::WRL::ComPtr;
 
 namespace Tofino
 {
+	using ObjectID = uint32_t;
+
 	class Mesh;
 
 	// 16Byte align
@@ -22,8 +26,6 @@ namespace Tofino
 		int padding;
 	};
 
-	using Microsoft::WRL::ComPtr;
-
 	class Hittable
 	{
 	public:
@@ -35,12 +37,13 @@ namespace Tofino
 	{
 	public:
 		Object(Scene* scene, const std::string name = "Untitled", const bool isHittable = true);
-		//virtual ~Object();
+		virtual ~Object() = default;
 
-		void Init(ComPtr<ID3D11Device>& device);
+		virtual void Init(ComPtr<ID3D11Device>& device);
 		void Bind(ComPtr<ID3D11DeviceContext>& context) const { m_constBuffer.Bind(context); }
+		void RenderGUI();
 
-		Matrix GetWorldMatrix() { return m_constBuffer.GetData().world.Transpose(); }
+		Matrix GetWorldMatrix()				{ return m_constBuffer.GetData().world.Transpose(); }
 		void UpdateWorldMatrix(const Matrix worldRow);
 		void UpdateWorldMatrix();
 
@@ -57,7 +60,7 @@ namespace Tofino
 		void SetUpdateFlag(bool flag)				{ m_updateFlag = flag;	}
 		bool IsUpdateFlagSet() const				{ return m_updateFlag;	}
 		std::string GetName() const					{ return m_name;		}
-		uint32_t GetID() const						{ return m_id;			}
+		ObjectID GetID() const						{ return m_id;			}
 
 		template<typename T>
 		void AddComponent(const T componentData)	{ m_scene->AddComponentOf(m_id, componentData); }
@@ -70,7 +73,7 @@ namespace Tofino
 		std::string m_name;
 		bool m_updateFlag = false;
 
-		uint32_t m_id;
+		ObjectID m_id;
 		Scene* m_scene;
 
 		ConstantBuffer<ModelBuffer> m_constBuffer;

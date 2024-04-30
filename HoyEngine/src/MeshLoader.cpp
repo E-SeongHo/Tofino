@@ -322,9 +322,34 @@ namespace Tofino
         Matrix tr; // Initial transformation
         ReadNode(scene->mRootNode, scene, tr);
 
-        // Bounding sphere assign
+        // Normalize
         Vector3 vmin(1000, 1000, 1000);
         Vector3 vmax(-1000, -1000, -1000);
+        for (auto& mesh : meshes)
+        {
+            for (auto& v : mesh.GetVertexBuffer().GetData())
+            {
+                vmin.x = XMMin(vmin.x, v.pos.x);
+                vmin.y = XMMin(vmin.y, v.pos.y);
+                vmin.z = XMMin(vmin.z, v.pos.z);
+                vmax.x = XMMax(vmax.x, v.pos.x);
+                vmax.y = XMMax(vmax.y, v.pos.y);
+                vmax.z = XMMax(vmax.z, v.pos.z);
+            }
+        }
+
+        float dx = vmax.x - vmin.x, dy = vmax.y - vmin.y, dz = vmax.z - vmin.z;
+        float dl = XMMax(XMMax(dx, dy), dz);
+        float cx = (vmax.x + vmin.x) * 0.5f, cy = (vmax.y + vmin.y) * 0.5f,
+            cz = (vmax.z + vmin.z) * 0.5f;
+
+        for (auto& mesh : meshes) {
+            for (auto& v : mesh.GetVertexBuffer().GetData()) {
+                v.pos.x = (v.pos.x - cx) / dl;
+                v.pos.y = (v.pos.y - cy) / dl;
+                v.pos.z = (v.pos.z - cz) / dl;
+            }
+        }
 
         std::cout << "Total meshes : " << meshes.size() << std::endl;
         std::cout << " Material Mapping status : " << std::endl;

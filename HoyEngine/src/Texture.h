@@ -20,7 +20,7 @@ namespace Tofino
 	public:
 		Texture() = default;
 		Texture(ComPtr<ID3D11Device>& device, const std::string filename, TextureType type);
-		Texture(const Texture& other);
+		Texture(const Texture& other) = default;
 		~Texture() = default;
 
 		bool Load(ComPtr<ID3D11Device>& device, const std::string filename, TextureType type);

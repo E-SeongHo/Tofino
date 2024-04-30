@@ -8,20 +8,23 @@ namespace Tofino
 	{
 	public:
 		Camera();
-		Vector3 GetOrigin() const { return m_origin; }
-		Vector3 GetDirection() const { return m_direction; }
-		Vector3 GetRight() const { return m_right; }
-		Vector3 GetUp() const { return m_up; }
+		Vector3& GetOrigin() 				{ return m_origin;		}
+		Vector3 GetDirection() const		{ return m_direction;	}
+		Vector3 GetRight() const			{ return m_right;		}
+		Vector3 GetUp() const				{ return m_up;			}
 
 		Matrix GetViewMatrix() const;
 		Matrix GetProjectionMatrix() const;
 
-		void SetAspect(float aspect) { m_aspect = aspect; }
-		void SetRunVars(bool flag);
+		void SetOrigin(const Vector3& location) { m_origin = location; }
 
+		void SetAspect(const float aspect)		{ m_aspect = aspect;	}
+		void SetRunVars(const bool flag);
+
+		// TODO: Move this functions to a Camera Controller Class 
 		void RotateFromMouse(const float ndcX, const float ndcY);
-		void MoveForward(float dt) { m_origin += m_direction * dt * m_speed; }
-		void MoveRight(float dt) { m_origin += m_right * dt * m_speed; }
+		void MoveForward(const float dt)		{ m_origin += m_direction * dt * m_speed;	}
+		void MoveRight(const float dt)			{ m_origin += m_right * dt * m_speed;		}
 
 	private:
 		// Camera Internal Parameters for View Transform
@@ -43,9 +46,8 @@ namespace Tofino
 
 		// Run variables
 		bool m_isRun = false;
-		const float walkSpeed = 5.0f;
-		const float walkFovY = 70.0f;
-
+		float walkSpeed = 5.0f;
+		float walkFovY = 70.0f;
 	};
 
 }

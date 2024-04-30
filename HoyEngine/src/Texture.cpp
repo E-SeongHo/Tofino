@@ -22,11 +22,6 @@ namespace Tofino
         m_isLoaded = Load(device, filename, type);
     }
 
-    Texture::Texture(const Texture& other)
-        : m_filename(other.m_filename), m_texture(other.m_texture), m_srv(other.m_srv)
-    {
-    }
-
     bool Texture::Load(ComPtr<ID3D11Device>& device, const std::string filename, TextureType type)
     {
         m_filename = filename;

@@ -3,6 +3,8 @@
 #include <vector>
 #include <unordered_map>
 
+#define MAX_OBJECTS 1000
+
 namespace Tofino
 {
 	using ObjectID = uint32_t;
@@ -11,20 +13,29 @@ namespace Tofino
 	{
 	public:
 		virtual ~IComponentContainer() = default;
+
+		bool Has(const ObjectID objID)
+		{
+			return m_indexMap.find(objID) != m_indexMap.end();
+		}
+
+	protected:
+		std::unordered_map<ObjectID, int> m_indexMap; // id to index
+		std::unordered_map<int, ObjectID> m_idMap; // index to id
 	};
 
 	template<typename T>
 	class ComponentContainer : public IComponentContainer
 	{
 	public:
-		ComponentContainer() = default;
+		ComponentContainer() { m_components.reserve(MAX_OBJECTS); }
 		~ComponentContainer() override = default;
 
-		void Add(const ObjectID objID, T component)
+		void Add(const ObjectID objID, const T& component)
 		{
 			assert(m_indexMap.find(objID) == m_indexMap.end());
 
-			m_components.push_back(component);
+			m_components.push_back(std::move(component));
 			m_indexMap[objID] = m_components.size() - 1;
 			m_idMap[m_components.size() - 1] = objID;
 		}
@@ -50,20 +61,10 @@ namespace Tofino
 			return m_components[m_indexMap[objID]];
 		}
 
-		bool Has(const ObjectID objID)
-		{
-			return m_indexMap.find(objID) != m_indexMap.end();
-		}
-
-		auto begin() { return m_components.begin(); }
-		auto cbegin() const { return m_components.begin(); }
-		auto end() { return m_components.end(); }
-		auto cend() const { return m_components.cend(); }
+		auto begin()	{ return m_components.begin(); }
+		auto end()		{ return m_components.end();   }
 
 	private:
 		std::vector<T> m_components;
-		std::unordered_map<ObjectID, int> m_indexMap; // id to index
-		std::unordered_map<int, ObjectID> m_idMap; // index to id
-
 	};
 }

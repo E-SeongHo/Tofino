@@ -36,7 +36,8 @@ cbuffer MaterialStatus : register(b1)
 
 struct PSInput
 {
-	float4 pos : SV_POSITION; // World Space
+	float4 pos : SV_POSITION; // Screen Space
+    float3 posWorld : POSITION;
 	float3 color : COLOR;
 	float3 normal : NORMAL; // World Space
 	float2 uv : TEXCOORD;
@@ -64,7 +65,7 @@ float4 main(PSInput input) : SV_TARGET
 
 	float3 N = hasNormalMap && activeNormalMap ? TBNTransform(input) : input.normal;
 	float3 L = normalize(-light.direction); // directional light
-    float3 V = normalize(eye - input.pos.xyz); // vector to eye from pixel
+    float3 V = normalize(eye - input.posWorld.xyz); // vector to eye from pixel
 	
 	float NdotL = max(0.0f, dot(N, L));
 

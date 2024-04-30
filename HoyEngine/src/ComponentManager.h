@@ -26,7 +26,7 @@ namespace Tofino
 		}
 
 		template<typename T>
-		void AddComponent(const ObjectID objID, const T component)
+		void AddComponent(const ObjectID objID, const T& component)
 		{
 			GetContainer<T>().Add(objID, component);
 		}

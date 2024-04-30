@@ -1,32 +1,23 @@
 
 #include "Scene.h"
 
-#include "Graphics.h"
 #include "Object.h"
 #include "Camera.h"
 #include "EnvMap.h"
 #include "ConstantBuffer.h"
 #include "ComponentManager.h"
+#include "HashStringManager.h"
 
 namespace Tofino
 {
 	Scene::Scene()
-		: m_constBuffer(ConstantBuffer<GlobalBuffer>(VERTEX_SHADER | GEOMETRY_SHADER | PIXEL_SHADER, 10)),
-		  m_componentManager(std::make_unique<ComponentManager>())
+		:m_constBuffer(ConstantBuffer<GlobalBuffer>(VERTEX_SHADER | GEOMETRY_SHADER | PIXEL_SHADER, 10)),
+		 m_componentManager(std::make_unique<ComponentManager>())
 	{
 	}
 
 	Scene::~Scene()
 	{
-		for (Object* obj : m_objects)
-		{
-			if (obj != nullptr)
-			{
-				delete obj;
-				obj = nullptr;
-			}
-		}
-
 		for (Light* light : m_lights)
 		{
 			if (light != nullptr)
@@ -35,61 +26,11 @@ namespace Tofino
 				light = nullptr;
 			}
 		}
-
-		if (m_skybox != nullptr)
-		{
-			delete m_skybox;
-			m_skybox = nullptr;
-		}
-
-		if (m_camera != nullptr)
-		{
-			delete m_camera;
-			m_camera = nullptr;
-		}
 	}
 
 	void Scene::Init()
 	{
-		assert(m_camera);
-
 		m_constBuffer.Init(RendererDevice);
-
-		auto& transforms = m_componentManager->GetContainer<TransformComponent>();
-		for(Object* obj : m_objects)
-		{
-			obj->Init(RendererDevice);
-
-			auto transform = transforms.Get(obj->GetID());
-			obj->UpdateWorldMatrix(Math::Transformer(transform));
-			obj->UpdateConstBuffer(RendererContext);
-		}
-
-		for (auto& meshComponent : m_componentManager->GetContainer<MeshComponent>())
-		{
-			for (auto& mesh : meshComponent.Meshes)
-			{
-				mesh.Init(RendererDevice);
-			}
-		}
-
-		if (m_skybox)
-		{
-			m_skybox->Init(RendererDevice);
-		}
-	}
-
-	void Scene::SetCamera(Camera* camera)
-	{
-		GlobalBuffer& sceneConst = m_constBuffer.GetData();
-		sceneConst.eye = camera->GetOrigin();
-		sceneConst.view = camera->GetViewMatrix().Transpose();
-		sceneConst.projection = camera->GetProjectionMatrix().Transpose();
-
-		// Change the render camera while rendering
-		if(m_camera) m_constBuffer.Update(RendererContext);
-
-		m_camera = camera;
 	}
 
 	void Scene::AddLight(Light* light)
@@ -99,54 +40,64 @@ namespace Tofino
 		m_constBuffer.GetData().light = *light; // temp
 	}
 
-	void Scene::AddObject(Object* object)
+	void Scene::SetMainObject(Object& object)
 	{
-		m_objects.push_back(object);
-		object->Init(RendererDevice);
-	}
+		// TODO: CHECK IF ITS SCENE STILL OWN THIS OBJECT
+		m_mainObject = &object;
 
-	Object* Scene::CreateEmptyObject(const std::string& name)
-	{
-		Object* obj = new Object(this, name, true);
-
-		m_objects.push_back(obj);
-		return obj;
+		if (m_mainObject->HasComponent<CameraComponent>())
+		{
+			m_playCamera = &m_mainObject->GetComponent<CameraComponent>().Camera;
+		}
 	}
 
 	void Scene::AddSkybox(EnvMap* skybox)
 	{
 		assert(!m_skybox);
 
-		m_skybox = skybox;
-		// skybox->Init(RendererDevice);
+		m_skybox.reset(skybox);
+		m_skybox->Init(RendererDevice);
 	}
 
-	void Scene::Update(float deltaTime)
+	void Scene::Update(float deltaTime) 
 	{
-		assert(m_camera);
-
-		if (Fn_Update) Fn_Update(deltaTime);
-
-		for (Object* obj : m_objects)
+		if(m_play)
 		{
-			// obj->Update(deltaTime);
+			for (const auto& obj : m_objects)
+			{
+				obj->Update(deltaTime);
+			}
+
+			if(m_playCamera)
+			{
+				GlobalBuffer& sceneConst = m_constBuffer.GetData();
+				// Updates Scene Buffer every frame
+				sceneConst.eye = m_playCamera->GetOrigin();
+				sceneConst.view = m_playCamera->GetViewMatrix().Transpose();
+				sceneConst.projection = m_playCamera->GetProjectionMatrix().Transpose();
+				m_constBuffer.Update(RendererContext);
+			}
 		}
 
-		GlobalBuffer& sceneConst = m_constBuffer.GetData();
-		// Updates Scene Buffer every frame
-		sceneConst.eye = m_camera->GetOrigin();
-		sceneConst.view = m_camera->GetViewMatrix().Transpose();
-		sceneConst.projection = m_camera->GetProjectionMatrix().Transpose();
-		m_constBuffer.Update(RendererContext);
-
-		// Process Changed data from GUI 
+		// Moves
+		auto& physics = m_componentManager->GetContainer<PhysicsComponent>();
 		auto& transforms = m_componentManager->GetContainer<TransformComponent>();
-		for(Object* obj : m_objects)
+
+		if(m_play)
+		{
+			std::vector<Object*> physicsObjects = Query(ComponentGroup<PhysicsComponent, TransformComponent>{});
+			for(Object* obj : physicsObjects)
+			{
+				transforms.Get(obj->GetID()).Translation += physics.Get(obj->GetID()).Velocity * deltaTime;
+				obj->SetUpdateFlag(true);
+			}
+		}
+
+		for(const auto& obj : m_objects)
 		{
 			if (obj->IsUpdateFlagSet()) // means either changed transform or texture mapping condition
 			{
 				auto transform = transforms.Get(obj->GetID());
-
 				obj->UpdateWorldMatrix(Math::Transformer(transform));
 				obj->UpdateConstBuffer(RendererContext);
 			}
@@ -165,10 +116,40 @@ namespace Tofino
 				}
 			}
 		}
-
-		/*for (Object* obj : m_objects)
-		{
-			if (obj->IsUpdateFlagSet()) obj->UpdateBuffer(RendererContext);
-		}*/
 	}
+
+	void Scene::DestroyObject(Object* object)
+	{
+		if(object == m_mainObject)
+		{
+			m_mainObject = nullptr;
+		}
+	}
+
+	template <>
+	void Scene::AddComponentOf<MeshComponent>(const ObjectID objID, const MeshComponent& componentData)
+	{
+		assert(m_componentManager);
+
+		m_componentManager->AddComponent(objID, std::move(componentData));
+
+		for(auto& mesh : GetComponentOf<MeshComponent>(objID).Meshes)
+		{
+			mesh.Init(RendererDevice);
+		}
+	}
+
+	template <>
+	void Scene::AddComponentOf<PhysicsComponent>(const ObjectID objID, const PhysicsComponent& componentData)
+	{
+		assert(m_componentManager);
+
+		m_componentManager->AddComponent(objID, std::move(componentData));
+
+		// 1. add AABB
+
+		// 2. Register To BVH
+	}
+
+
 }

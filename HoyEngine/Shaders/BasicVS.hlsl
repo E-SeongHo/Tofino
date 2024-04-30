@@ -30,7 +30,8 @@ cbuffer MaterialStatus : register(b1)
 
 struct PSInput
 {
-	float4 pos : SV_POSITION;
+	float4 pos : SV_POSITION; // Screen Space
+    float3 posWorld : POSITION; // World Space (For lighting)
 	float3 color : COLOR;
 	float3 normal : NORMAL; // World Space
 	float2 uv   : TEXCOORD;
@@ -54,6 +55,7 @@ PSInput main( BasicVertexInput input )
 	// vertex position
 	float4 pos = float4(input.pos, 1.0f);
 	pos = mul(pos, world);
+    output.posWorld = pos.xyz;
 
 	// height mapping (in world space)
 	int heightMapping = hasHeightMap && activeHeightMap ? 1 : 0;

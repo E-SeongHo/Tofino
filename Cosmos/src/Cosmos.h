@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Application.h>
+#include <vector>
 
 class Tofino::Scene;
 
@@ -20,5 +21,5 @@ private:
 	void DesignScenes();
 
 private:
-	Tofino::Scene* m_scene;
+	std::vector<std::unique_ptr<Tofino::Scene>> m_scenes;
 };

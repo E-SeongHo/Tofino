@@ -21,12 +21,15 @@ namespace Tofino
 	//https://stackoverflow.com/questions/17221815/why-cant-my-wndproc-be-in-a-class
 
 	Application::Application()
+		: m_editorCamera(std::make_unique<Camera>())
 	{
 		pInstance = this;
-		m_input = std::make_unique<Input>();
 
-		// Early Initialization of Singleton
-		RendererInstance.GetInstance();
+		m_editorCamera->SetAspect(static_cast<float>(m_width) / m_height);
+
+		// Early Initialization of Singletons
+		Graphics::GetInstance();
+		Input::GetInstance();
 		ShaderManager::GetInstance();
 	}
 
@@ -102,17 +105,15 @@ namespace Tofino
 		return true;
 	}
 
-	bool Application::InitRenderer()
+	bool Application::InitRenderer() const
 	{
-		//m_renderer = make_unique<Graphics>(m_window, m_width, m_height);
-
 		if (!RendererInstance.Init(m_window, m_width, m_height))
 			return false;
 
 		return true;
 	}
 
-	bool Application::InitGUI()
+	bool Application::InitGUI() const
 	{
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -129,11 +130,6 @@ namespace Tofino
 			return false;
 
 		return true;
-	}
-
-	void Application::SetCurrentScene(Scene* scene)
-	{
-		m_currentScene = scene;
 	}
 
 	void Application::Run()
@@ -171,11 +167,22 @@ namespace Tofino
 			MouseTranslateObject(deltaTime);
 			break;
 		case AppMode::TRAVERSAL:
-			AdjustSceneCamera(deltaTime);
-			m_input->CenterCursor(m_window, m_width, m_height);
+			AdjustEditorCamera(deltaTime);
+			Input::CenterCursor(m_window, m_width, m_height);
 			break;
 		case AppMode::PLAY:
 			break;
+		}
+
+		if(m_appMode != AppMode::PLAY) // use default App's editor camera
+		{	
+			auto& sceneConst = m_currentScene->GetSceneConstBuffer().GetData();
+
+			// Updates Scene Buffer every frame
+			sceneConst.eye = m_editorCamera->GetOrigin();
+			sceneConst.view = m_editorCamera->GetViewMatrix().Transpose();
+			sceneConst.projection = m_editorCamera->GetProjectionMatrix().Transpose();
+			m_currentScene->GetSceneConstBuffer().Update(RendererContext);
 		}
 
 		m_currentScene->Update(deltaTime);
@@ -188,47 +195,54 @@ namespace Tofino
 		if (m_appMode == appMode) return;
 
 		m_appMode = appMode;
-		if (m_appMode == AppMode::TRAVERSAL || m_appMode == AppMode::PLAY)
+
+		switch(m_appMode)
 		{
-			m_input->CenterCursor(m_window, m_width, m_height);
-			ShowCursor(false);
-		}
-		else
-		{
+		case AppMode::EDIT:
+			m_currentScene->SetPlay(false);
 			ShowCursor(true);
+			break;
+		case AppMode::TRAVERSAL:
+			m_currentScene->SetPlay(false);
+			Input::CenterCursor(m_window, m_width, m_height);
+			ShowCursor(false);
+			break;
+		case AppMode::PLAY:
+			m_currentScene->SetPlay(true);
+			Input::CenterCursor(m_window, m_width, m_height);
+			//ShowCursor(false); // temporary commented
+			break;
 		}
 	}
 
 	void Application::HandleKeyboardEvent()
 	{
-		if (m_input->IsKeyPressed(VK_ESCAPE)) PostMessage(m_window, WM_DESTROY, 0, 0);
-		if (m_input->IsKeyPressed('F')) ChangeAppMode(AppMode::TRAVERSAL);
-		if (m_input->IsKeyPressed('E')) ChangeAppMode(AppMode::EDIT);
-		if (m_input->IsKeyPressed('P')) ChangeAppMode(AppMode::PLAY);
+		if (Input::IsKeyPressed(VK_ESCAPE)) PostMessage(m_window, WM_DESTROY, 0, 0);
+		if (Input::IsKeyPressed('F')) ChangeAppMode(AppMode::TRAVERSAL);
+		if (Input::IsKeyPressed('E')) ChangeAppMode(AppMode::EDIT);
+		if (Input::IsKeyPressed('P')) ChangeAppMode(AppMode::PLAY);
 	}
 
 	void Application::MouseTranslateObject(float deltaTime)
 	{
-		//cout << "wheel state : " << m_input->GetMouseWheel() << endl;
+		//cout << "wheel state : " << Input::GetMouseWheel() << endl;
 
 		static bool picking = false;
 		static Object* pickingObject = nullptr;
 		static Plane draggingPlane = Plane();
 		static Vector3 prevHit = Vector3();
 
-		int xPos = m_input->GetMouseX(); int yPos = m_input->GetMouseY();
+		int xPos = Input::GetMouseX(); int yPos = Input::GetMouseY();
 
 		const float ndcX = (xPos * 2.0f / m_width) - 1.0f;
 		const float ndcY = -((yPos * 2.0f / m_height) - 1.0f);
 
-		Camera* cam = m_currentScene->GetCamera();
-
-		if (m_input->IsMouseButtonPressed(MOUSE_BUTTON::LEFT_CLICK))
+		if (Input::IsMouseButtonPressed(MOUSE_BUTTON::LEFT_CLICK))
 		{
 			if (picking && pickingObject != nullptr) // on same plane
 			{
-				Matrix view = cam->GetViewMatrix();
-				Matrix projection = cam->GetProjectionMatrix();
+				Matrix view = m_editorCamera->GetViewMatrix();
+				Matrix projection = m_editorCamera->GetProjectionMatrix();
 				Matrix unprojection = projection.Invert() * view.Invert();
 
 				Vector3 p0 = Vector3(ndcX, ndcY, 0.0f);
@@ -248,34 +262,22 @@ namespace Tofino
 
 				pickingObject->GetComponent<TransformComponent>().Translation += dv;
 				pickingObject->SetUpdateFlag(true);
-
-				/*pickingObject->UpdateWorldMatrix(pickingObject->GetWorldMatrix() * Matrix::CreateTranslation(dv));
-				pickingObject->m_transform.Location += dv;
-				pickingObject->UpdateBuffer(RendererContext);
-				pickingObject->m_boundingSphere.Center = pickingObject->m_boundingSphere.Center + dv;*/
-
 				prevHit = hitPoint;
 
 				// Translate depth 
-				int wheel = m_input->GetMouseWheelAndReset();
+				int wheel = Input::GetMouseWheelAndReset();
 				if (wheel != 0 && picking && pickingObject != nullptr)
 				{
 					constexpr int speed = 2;
 					int movement = wheel / 120;
-					Vector3 dv = pickingObject->m_boundingSphere.Center - cam->GetOrigin();
+					Vector3 dv = pickingObject->m_boundingSphere.Center - m_editorCamera->GetOrigin();
 					dv.Normalize();
 					dv = dv * movement * speed;
 
 					pickingObject->GetComponent<TransformComponent>().Translation += dv;
 					pickingObject->SetUpdateFlag(true);
 
-					/*Matrix m = Matrix::CreateTranslation(dv);
-					pickingObject->UpdateWorldMatrix(pickingObject->GetWorldMatrix() * m);
-					pickingObject->m_transform.Location += dv;
-					pickingObject->UpdateBuffer(RendererContext);
-					pickingObject->m_boundingSphere.Center = pickingObject->m_boundingSphere.Center + dv;*/
-
-					Vector3 n = -cam->GetDirection();
+					Vector3 n = -m_editorCamera->GetDirection();
 					n.Normalize();
 					draggingPlane = Plane(prevHit + dv, n);
 
@@ -287,7 +289,7 @@ namespace Tofino
 				Vector3 p0 = Vector3(ndcX, ndcY, 0.0f);
 				Vector3 p1 = Vector3(ndcX, ndcY, 1.0f);
 				// NDC -> View -> World
-				Matrix unprojection = cam->GetProjectionMatrix().Invert() * cam->GetViewMatrix().Invert();
+				Matrix unprojection = m_editorCamera->GetProjectionMatrix().Invert() * m_editorCamera->GetViewMatrix().Invert();
 
 				p0 = Vector3::Transform(p0, unprojection);
 				p1 = Vector3::Transform(p1, unprojection);
@@ -308,10 +310,10 @@ namespace Tofino
 						if (!picking)
 						{
 							picking = true;
-							pickingObject = object;
+							pickingObject = object.get();
 						}
 						Vector3 hitPoint = p0 + direction * distance;
-						Vector3 n = -cam->GetDirection();
+						Vector3 n = -m_editorCamera->GetDirection();
 						n.Normalize();
 
 						prevHit = hitPoint;
@@ -329,35 +331,35 @@ namespace Tofino
 		}
 	}
 
-	void Application::AdjustSceneCamera(float deltaTime)
+	void Application::AdjustEditorCamera(float deltaTime)
 	{
-		Camera* cam = m_currentScene->GetCamera();
+		//Camera* cam = m_currentScene->GetCamera();
 
-		cam->SetRunVars(m_input->IsKeyPressed(VK_SHIFT));
+		m_editorCamera->SetRunVars(Input::IsKeyPressed(VK_SHIFT));
 
-		if (m_input->IsKeyPressed('W'))
+		if (Input::IsKeyPressed('W'))
 		{
-			cam->MoveForward(deltaTime);
+			m_editorCamera->MoveForward(deltaTime);
 		}
-		if (m_input->IsKeyPressed('A'))
+		if (Input::IsKeyPressed('A'))
 		{
-			cam->MoveRight(-deltaTime);
+			m_editorCamera->MoveRight(-deltaTime);
 		}
-		if (m_input->IsKeyPressed('S'))
+		if (Input::IsKeyPressed('S'))
 		{
-			cam->MoveForward(-deltaTime);
+			m_editorCamera->MoveForward(-deltaTime);
 		}
-		if (m_input->IsKeyPressed('D'))
+		if (Input::IsKeyPressed('D'))
 		{
-			cam->MoveRight(deltaTime);
+			m_editorCamera->MoveRight(deltaTime);
 		}
 
-		int xPos = m_input->GetMouseX(); int yPos = m_input->GetMouseY();
+		int xPos = Input::GetMouseX(); int yPos = Input::GetMouseY();
 
 		const float ndcX = (xPos * 2.0f / m_width) - 1.0f;
 		const float ndcY = -((yPos * 2.0f / m_height) - 1.0f);
 
-		cam->RotateFromMouse(ndcX, ndcY);
+		m_editorCamera->RotateFromMouse(ndcX, ndcY);
 	}
 
 	LRESULT Application::ProcessMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -376,29 +378,29 @@ namespace Tofino
 				return 0;
 			break;
 		case WM_MOUSEMOVE:
-			m_input->MouseMoved((int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam));
+			Input::MouseMoved((int)(short)LOWORD(lParam), (int)(short)HIWORD(lParam));
 			break;
 		case WM_LBUTTONDOWN:
-			m_input->MouseClicked(MOUSE_BUTTON::LEFT_CLICK);
+			Input::MouseClicked(MOUSE_BUTTON::LEFT_CLICK);
 			break;
 		case WM_LBUTTONUP:
-			m_input->MouseUp(MOUSE_BUTTON::LEFT_CLICK);
+			Input::MouseUp(MOUSE_BUTTON::LEFT_CLICK);
 			break;
 		case WM_MOUSEWHEEL:
 			//cout << GET_WHEEL_DELTA_WPARAM(wParam) << endl;
-			m_input->MouseScrolled(GET_WHEEL_DELTA_WPARAM(wParam));
+			Input::MouseScrolled(GET_WHEEL_DELTA_WPARAM(wParam));
 			break;
 		case WM_RBUTTONDOWN:
-			m_input->MouseClicked(MOUSE_BUTTON::RIGHT_CLICK);
+			Input::MouseClicked(MOUSE_BUTTON::RIGHT_CLICK);
 			break;
 		case WM_RBUTTONUP:
-			m_input->MouseUp(MOUSE_BUTTON::RIGHT_CLICK);
+			Input::MouseUp(MOUSE_BUTTON::RIGHT_CLICK);
 			break;
 		case WM_KEYDOWN:
-			m_input->KeyPressed(wParam);
+			Input::KeyPressed(wParam);
 			break;
 		case WM_KEYUP:
-			m_input->KeyUp(wParam);
+			Input::KeyUp(wParam);
 			break;
 		case WM_DESTROY:
 			::PostQuitMessage(0);

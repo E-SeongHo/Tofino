@@ -1,7 +1,3 @@
-#include <d3d11.h>
-#include <d3dcompiler.h>
-#include <algorithm>
-#include <iostream>
 
 #include "Camera.h"
 
@@ -32,8 +28,6 @@ namespace Tofino
 
 	void Camera::RotateFromMouse(const float ndcX, const float ndcY)
 	{	// ndcX occurs Y Rotation, ndcY occurs X Rotation
-		// TODO : q, e 누를 시 배틀그라운드처럼 roll rotation 구현
-
 		//m_direction = Vector3::Transform(Vector3(0.0f, 0.0f, 1.0f), Matrix::CreateRotationY(ndcX * XM_2PI));
 		//m_direction = Vector3::Transform(m_direction, Matrix::CreateRotationX(ndcY * -XM_PIDIV2)); // 반시계
 		//std::cout << ndcX << ", " << ndcY << std::endl;

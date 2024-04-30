@@ -19,9 +19,19 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\BattleScene.h" />
+    <ClInclude Include="src\Meteor.h" />
+    <ClInclude Include="src\MeteorGenerator.h" />
+    <ClInclude Include="src\SpaceStation.h" />
+    <ClInclude Include="src\Aircraft.h" />
     <ClInclude Include="src\Cosmos.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\BattleScene.cpp" />
+    <ClCompile Include="src\Meteor.cpp" />
+    <ClCompile Include="src\MeteorGenerator.cpp" />
+    <ClCompile Include="src\SpaceStation.cpp" />
+    <ClCompile Include="src\Aircraft.cpp" />
     <ClCompile Include="src\Cosmos.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
