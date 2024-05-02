@@ -14,7 +14,7 @@ public:
 	// Called every frame
 	void Update(float deltaTime) override;
 
-	void SetAngularVelocity(Tofino::Vector3& velocity);
+	void SetAngularVelocity(const Tofino::Vector3& velocity);
 
 private:
 	Tofino::TransformComponent* transform;

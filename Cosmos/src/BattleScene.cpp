@@ -4,6 +4,7 @@
 #include "BattleScene.h"
 #include "Meteor.h"
 #include "Aircraft.h"
+#include "MeshLoader.h"
 #include "SpaceStation.h"
 
 using namespace Tofino;
@@ -32,6 +33,9 @@ BattleScene::BattleScene()
 
     SpaceStation& spaceStation = CreateObject<SpaceStation>("Space Station");
 
+    /*Object& obj = CreateObject<Object>("test cube");
+    obj.AddComponent<MeshComponent>(MeshComponent{ MeshLoader::LoadCube() });*/
+
     Aircraft& aircraft = CreateObject<Aircraft>("E-45 Aircraft");
     SetMainObject(aircraft);
 
@@ -59,7 +63,7 @@ void BattleScene::Update(float deltaTime)
     {
         timeElapsed += deltaTime;
 
-        if (timeElapsed > 10.0f)
+        if (timeElapsed > 20.0f)
         {
             m_meteorGenerator.ShootMeteors();
             timeElapsed = 0.0f;

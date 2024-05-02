@@ -29,6 +29,10 @@ namespace Tofino
 		ShaderLoader::LoadGeometryShader(device, L"../HoyEngine/Shaders/NormalGS.hlsl", normalGS);
 		ShaderLoader::LoadPixelShader(device, L"../HoyEngine/Shaders/NormalPS.hlsl", normalPS);
 
+		// ColliderVS uses same input layout
+		ShaderLoader::LoadVertexShader(device, L"../HoyEngine/Shaders/ColliderVS.hlsl", colliderVS, vertexBlob);
+		ShaderLoader::LoadPixelShader(device, L"../HoyEngine/Shaders/ColliderPS.hlsl", colliderPS);
+
 		// EnvMap uses same input layout
 		// vertexBlob.Reset();
 		ShaderLoader::LoadVertexShader(device, L"../HoyEngine/Shaders/EnvMapVS.hlsl", envMapVS, vertexBlob);

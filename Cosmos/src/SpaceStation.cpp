@@ -11,12 +11,12 @@ SpaceStation::SpaceStation(Tofino::Scene* scene, const std::string name, const b
 {
     std::string directory = "D:/Workspace/3DModels/sci-fi-space-station/";
 
-    AddComponent<TransformComponent>(TransformComponent());
-    AddComponent<MeshComponent>(MeshComponent(
-        { MeshLoader::LoadModel(directory + "SpaceStation.fbx") })
-        );
+    AddComponent<TransformComponent>();
+    AddComponent<MeshComponent>();
+    GetComponent<MeshComponent>().Meshes = MeshLoader::LoadModel(directory + "SpaceStation.fbx");
 
-    // Since Assimp failed to find appropriate textures
+    AddComponent<PhysicsComponent>();
+	// Since Assimp failed to find appropriate textures
     {
         Texture bodyAlbedo2(
             RendererDevice, directory + "SpaceStationParts2_BaseColor.png",
@@ -50,5 +50,4 @@ void SpaceStation::Update(float deltaTime)
 
     rotation += Vector3(0.0f, 0.0f, m_angularAccer * deltaTime);
     m_updateFlag = true;
-
 }

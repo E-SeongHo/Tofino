@@ -30,5 +30,5 @@ private:
 	std::vector<MeteorData> m_meteorTemplates;
 	std::vector<Meteor*> m_meteorPool;
 
-	const int m_maxPool = 500;
+	const int m_maxPool = 1000;
 };

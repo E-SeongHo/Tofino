@@ -82,13 +82,18 @@ namespace Tofino
 		// Moves
 		auto& physics = m_componentManager->GetContainer<PhysicsComponent>();
 		auto& transforms = m_componentManager->GetContainer<TransformComponent>();
+		std::vector<Object*> physicsObjects = Query(ComponentGroup<PhysicsComponent, TransformComponent>{});
 
 		if(m_play)
 		{
-			std::vector<Object*> physicsObjects = Query(ComponentGroup<PhysicsComponent, TransformComponent>{});
+			// Apply velocity
 			for(Object* obj : physicsObjects)
 			{
-				transforms.Get(obj->GetID()).Translation += physics.Get(obj->GetID()).Velocity * deltaTime;
+				auto& physicsComponent = physics.Get(obj->GetID());
+
+				Vector3 dv = physicsComponent.Velocity * deltaTime;
+				transforms.Get(obj->GetID()).Translation += dv;
+
 				obj->SetUpdateFlag(true);
 			}
 		}
@@ -97,12 +102,41 @@ namespace Tofino
 		{
 			if (obj->IsUpdateFlagSet()) // means either changed transform or texture mapping condition
 			{
-				auto transform = transforms.Get(obj->GetID());
+				auto& transform = transforms.Get(obj->GetID());
 				obj->UpdateWorldMatrix(Math::Transformer(transform));
 				obj->UpdateConstBuffer(RendererContext);
+
+				if(HasComponentOf<PhysicsComponent>(obj->GetID()))
+				{
+					GetComponentOf<PhysicsComponent>(obj->GetID()).Collider.Scale(transform.Scale);
+					GetComponentOf<PhysicsComponent>(obj->GetID()).Collider.Translate(transform.Translation);
+					GetComponentOf<PhysicsComponent>(obj->GetID()).Collider.UpdateConstBuffer(RendererContext);
+				}
 			}
 		}
 
+		// Check Collision ( brute force )
+		std::vector<PhysicsComponent*> collisionPair;
+		collisionPair.reserve(MAX_OBJECTS);
+
+		for(auto& p1 : physics)
+		{
+			for(auto& p2 : physics)
+			{
+				if(p1.Collider.CheckCollision(p2.Collider))
+				{
+					collisionPair.push_back(&p1);
+					break;
+				}
+			}
+		}
+
+		for (auto& pair : collisionPair)
+		{
+			// some narrow phase check can be added here
+			pair->Collider.OnCollisionDetected();
+		}
+		
 		// Meshes
 		auto& meshes = m_componentManager->GetContainer<MeshComponent>();
 		for(auto& meshComponent : meshes)
@@ -127,28 +161,51 @@ namespace Tofino
 	}
 
 	template <>
-	void Scene::AddComponentOf<MeshComponent>(const ObjectID objID, const MeshComponent& componentData)
+	void Scene::AddComponentOf<MeshComponent>(const ObjectID objID)
 	{
-		assert(m_componentManager);
-
-		m_componentManager->AddComponent(objID, std::move(componentData));
-
-		for(auto& mesh : GetComponentOf<MeshComponent>(objID).Meshes)
-		{
-			mesh.Init(RendererDevice);
-		}
+		m_componentManager->AddComponent<MeshComponent>(objID);
 	}
 
 	template <>
-	void Scene::AddComponentOf<PhysicsComponent>(const ObjectID objID, const PhysicsComponent& componentData)
+	void Scene::AddComponentOf<PhysicsComponent>(const ObjectID objID)
 	{
-		assert(m_componentManager);
+		assert(HasComponentOf<TransformComponent>(objID));
+		assert(HasComponentOf<MeshComponent>(objID));
 
-		m_componentManager->AddComponent(objID, std::move(componentData));
+		m_componentManager->AddComponent<PhysicsComponent>(objID);
 
-		// 1. add AABB
+		// compute min max bound to assign the right fit AABB 
+		assert(GetComponentOf<MeshComponent>(objID).Meshes.size()); // considering change it later?
 
-		// 2. Register To BVH
+		Vector3 vmin(1000, 1000, 1000);
+		Vector3 vmax(-1000, -1000, -1000);
+		for (auto& mesh : GetComponentOf<MeshComponent>(objID).Meshes)
+		{
+			for (auto& v : mesh.GetVertexBuffer().GetData())
+			{
+				vmin.x = DirectX::XMMin(vmin.x, v.pos.x);
+				vmin.y = DirectX::XMMin(vmin.y, v.pos.y);
+				vmin.z = DirectX::XMMin(vmin.z, v.pos.z);
+				vmax.x = DirectX::XMMax(vmax.x, v.pos.x);
+				vmax.y = DirectX::XMMax(vmax.y, v.pos.y);
+				vmax.z = DirectX::XMMax(vmax.z, v.pos.z);
+			}
+		}
+
+		std::cout << "lower bound : " << vmin << std::endl;
+		std::cout << "upper bound : " << vmax << std::endl;
+
+		/*Vector3 scale = GetComponentOf<TransformComponent>(objID).Scale;
+		Matrix invScale = Matrix::CreateScale(Vector3(1.0f / scale.x, 1.0f / scale.y, 1.0f / scale.z));
+
+		vmin = Vector3::Transform(vmin, invScale);
+		vmax = Vector3::Transform(vmax, invScale);*/
+
+		if (vmin == Vector3(-1.0f) && vmax == Vector3(1.0f)) return;
+
+		GetComponentOf<PhysicsComponent>(objID).Collider = Collider(vmin, vmax);
+
+		// TODO : Register To BVH
 	}
 
 

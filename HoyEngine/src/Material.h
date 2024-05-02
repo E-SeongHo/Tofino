@@ -16,7 +16,7 @@ namespace Tofino
 
 		int hasAlbedoMap = 0;
 		int hasNormalMap = 0;
-		int hasHeightMap = 0;
+		int hasHeightMap = 0; 
 		int padding2;
 	};
 

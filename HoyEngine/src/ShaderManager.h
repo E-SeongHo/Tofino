@@ -29,6 +29,9 @@ namespace Tofino
 		ComPtr<ID3D11GeometryShader> normalGS;
 		ComPtr<ID3D11PixelShader> normalPS;
 
+		ComPtr<ID3D11VertexShader> colliderVS;
+		ComPtr<ID3D11PixelShader> colliderPS;
+
 		ComPtr<ID3D11VertexShader> envMapVS;
 		ComPtr<ID3D11PixelShader> envMapPS;
 

@@ -19,6 +19,8 @@ namespace Tofino
 		AABB Combine(const AABB& other);
 
 	private:
+		friend class Collider;
+
 		Vector3 m_lowerBound;
 		Vector3 m_upperBound;
 	};

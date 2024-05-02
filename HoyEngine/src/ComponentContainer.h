@@ -3,7 +3,7 @@
 #include <vector>
 #include <unordered_map>
 
-#define MAX_OBJECTS 1000
+#define MAX_OBJECTS 10000
 
 namespace Tofino
 {
@@ -31,11 +31,11 @@ namespace Tofino
 		ComponentContainer() { m_components.reserve(MAX_OBJECTS); }
 		~ComponentContainer() override = default;
 
-		void Add(const ObjectID objID, const T& component)
+		void Add(const ObjectID objID)
 		{
 			assert(m_indexMap.find(objID) == m_indexMap.end());
 
-			m_components.push_back(std::move(component));
+			m_components.push_back(T());
 			m_indexMap[objID] = m_components.size() - 1;
 			m_idMap[m_components.size() - 1] = objID;
 		}

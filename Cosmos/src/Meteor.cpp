@@ -9,7 +9,7 @@ using namespace Tofino;
 Meteor::Meteor(Tofino::Scene* scene, const std::string name, const bool isHittable)
 	:Object(scene, name, isHittable)
 {
-	AddComponent<TransformComponent>({});
+	AddComponent<TransformComponent>();
 	transform = &GetComponent<TransformComponent>();
 }
 
@@ -32,7 +32,7 @@ void Meteor::Update(float deltaTime)
 	m_updateFlag = true;
 }
 
-void Meteor::SetAngularVelocity(Tofino::Vector3& velocity)
+void Meteor::SetAngularVelocity(const Tofino::Vector3& velocity)
 {
 	m_angularVelocity = velocity;
 }

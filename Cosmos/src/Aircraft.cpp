@@ -10,12 +10,13 @@ using namespace Tofino;
 Aircraft::Aircraft(Tofino::Scene* scene, const std::string name, const bool isHittable)
 	:Object(scene, name, isHittable)
 {
-	AddComponent<TransformComponent>(TransformComponent());
     std::string directory = "D:/Workspace/3DModels/E-45-Aircraft/";
 
-    AddComponent<MeshComponent>(MeshComponent(
-        { MeshLoader::LoadModel(directory + "E 45 Aircraft_obj.obj") }
-    ));
+	AddComponent<TransformComponent>();
+    AddComponent<MeshComponent>();
+    GetComponent<MeshComponent>().Meshes = MeshLoader::LoadModel(directory + "E 45 Aircraft_obj.obj");
+
+	AddComponent<PhysicsComponent>();
 
     // Since Assimp failed to find appropriate textures
     {
@@ -39,10 +40,9 @@ Aircraft::Aircraft(Tofino::Scene* scene, const std::string name, const bool isHi
     transform = &GetComponent<TransformComponent>();
 
     transform->Translation = Vector3(7.0f, 10.0f, -150.0f);
-    transform->Scale = Vector3(15.0f);
+    transform->Scale = Vector3(5.0f);
 
-    AddComponent<CameraComponent>({ Camera() });
-    
+    AddComponent<CameraComponent>();
     camera = &GetComponent<CameraComponent>();
 
     // Sets offset of camera component

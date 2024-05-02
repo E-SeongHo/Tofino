@@ -3,6 +3,7 @@
 #include "Camera.h"
 #include "SimpleMath.h"
 #include "Mesh.h"
+#include "Collider.h"
 
 namespace Tofino
 {
@@ -28,6 +29,7 @@ namespace Tofino
 	struct PhysicsComponent
 	{
 		Vector3 Velocity = { 0.0f, 0.0f, 0.0f };
+		Collider Collider;
 	};
 
 	// Template meta programming

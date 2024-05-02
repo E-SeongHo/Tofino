@@ -267,9 +267,6 @@ namespace Tofino
         m_context->OMSetRenderTargets(1, m_hdrRTV.GetAddressOf(), m_depthStencilView.Get());
         m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
 
-        m_context->VSSetShader(ShaderManager::GetInstance().basicVS.Get(), 0, 0);
-        m_context->PSSetShader(ShaderManager::GetInstance().basicPS.Get(), 0, 0);
-
         ID3D11SamplerState* samplers[] = { m_samplerState.Get(), m_clampSampler.Get() };
         m_context->VSSetSamplers(0, 2, samplers);
         m_context->PSSetSamplers(0, 2, samplers);
@@ -283,11 +280,14 @@ namespace Tofino
             m_context->RSSetState(m_solidState.Get());
         }
 
-        // Set Vertex & Index Buffer
+        // Draw Meshes
         m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
         m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        scene->GetSceneConstBuffer().Bind(m_context);
+        m_context->VSSetShader(ShaderManager::GetInstance().basicVS.Get(), 0, 0);
+        m_context->PSSetShader(ShaderManager::GetInstance().basicPS.Get(), 0, 0);
+
+    	scene->GetSceneConstBuffer().Bind(m_context);
         scene->GetSkybox().BindIBLSRVs(m_context); // for objects
 
         // TODO: Batch Rendering (take advantage of ECS)
@@ -296,21 +296,41 @@ namespace Tofino
     		Draw(object.get());
         }
 
-        m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
+        // Draw Normals
+        /*m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
         m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
         m_context->VSSetShader(ShaderManager::GetInstance().normalVS.Get(), 0, 0);
         m_context->GSSetShader(ShaderManager::GetInstance().normalGS.Get(), 0, 0);
         m_context->PSSetShader(ShaderManager::GetInstance().normalPS.Get(), 0, 0);
 
-        /*for (auto& object : scene->GetAllSceneObjects())
+        scene->GetSceneConstBuffer().Bind(m_context);
+
+        for (auto& object : scene->GetAllSceneObjects())
         {
             DrawNormal(object.get());
-        }*/
+        }
+        m_context->GSSetShader(nullptr, 0, 0);*/
 
-        m_context->GSSetShader(nullptr, 0, 0);
+        // Draw Colliders
+        m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
+        m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
-        // cube map
+        m_context->VSSetShader(ShaderManager::GetInstance().colliderVS.Get(), 0, 0);
+        m_context->PSSetShader(ShaderManager::GetInstance().colliderPS.Get(), 0, 0);
+
+        scene->GetSceneConstBuffer().Bind(m_context);
+
+        auto& physicsContainer = scene->m_componentManager->GetContainer<PhysicsComponent>();
+        for(auto& physicsComponent : physicsContainer)
+        {
+            auto& collider = physicsComponent.Collider;
+            collider.Bind(m_context);
+
+            m_context->Draw(32, 0);
+        }
+
+        // Draw Skybox
         m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
         m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 

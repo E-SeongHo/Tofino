@@ -63,11 +63,11 @@ namespace Tofino
 		ObjectID GetID() const						{ return m_id;			}
 
 		template<typename T>
-		void AddComponent(const T componentData)	{ m_scene->AddComponentOf(m_id, componentData); }
+		void AddComponent()		{ m_scene->AddComponentOf<T>(m_id);				}
 		template<typename T>
-		T& GetComponent()							{ return m_scene->GetComponentOf<T>(m_id);		}
+		T& GetComponent()		{ return m_scene->GetComponentOf<T>(m_id);		}
 		template<typename T>
-		bool HasComponent()							{ return m_scene->HasComponentOf<T>(m_id);		}
+		bool HasComponent()		{ return m_scene->HasComponentOf<T>(m_id);		}
 
 	protected:
 		std::string m_name;

@@ -13,6 +13,10 @@ namespace Tofino
 	using Plane = DirectX::SimpleMath::Plane;
 	using Ray = DirectX::SimpleMath::Ray;
 
+	std::ostream& operator<<(std::ostream& os, const Vector4& v);
+	std::ostream& operator<<(std::ostream& os, const Vector3& v);
+	std::ostream& operator<<(std::ostream& os, const Matrix& m);
+
 	// Matrix operations
 	struct TransformComponent;
 	namespace Math

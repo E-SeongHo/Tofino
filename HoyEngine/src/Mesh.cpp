@@ -27,11 +27,8 @@ namespace Tofino
     void Mesh::Bind(ComPtr<ID3D11DeviceContext>& context) const
     {
         m_material.Bind(context);
-
-        UINT stride = sizeof(Vertex);
-        UINT offset = 0;
-        context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetBuffer().GetAddressOf(), &stride, &offset);
-        context->IASetIndexBuffer(m_indexBuffer.GetBuffer().Get(), DXGI_FORMAT_R32_UINT, 0);
+        m_vertexBuffer.Bind(context);
+        m_indexBuffer.Bind(context);
     }
 
     void Mesh::SetMaterialFactors(Vector4 baseColor, float roughness, const float metallic)

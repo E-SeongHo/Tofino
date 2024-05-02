@@ -21,7 +21,9 @@ namespace Tofino
 
         indices = { 0, 1, 2 };
 
-        return std::vector<Mesh>({ Mesh(vertices, indices) }); // RVO
+        Mesh mesh(vertices, indices);
+        mesh.Init(RendererDevice);
+        return std::vector<Mesh>({ std::move(mesh) }); // RVO 
     }
 
     std::vector<Mesh> MeshLoader::LoadSquare(const float scale)
@@ -64,7 +66,9 @@ namespace Tofino
         }
         indices = { 0, 1, 2, 0, 2, 3, };
 
-        return std::vector<Mesh>({ Mesh(vertices, indices) }); // RVO
+        Mesh mesh(vertices, indices);
+        mesh.Init(RendererDevice);
+        return std::vector<Mesh>({ std::move(mesh) }); // RVO 
     }
 
     std::vector<Mesh> MeshLoader::LoadCube(const float scale)
@@ -206,7 +210,9 @@ namespace Tofino
             20, 21, 22, 20, 22, 23  // right
         };
 
-        return std::vector<Mesh>({ Mesh(vertices, indices) }); // RVO
+        Mesh mesh(vertices, indices);
+        mesh.Init(RendererDevice);
+        return std::vector<Mesh>({ std::move(mesh) }); // RVO 
     }
 
     std::vector<Mesh> MeshLoader::LoadSphere(const float scale)
@@ -223,8 +229,8 @@ namespace Tofino
         std::vector<Vector3> tangents;
 
         const float radius = 1.0f * scale;
-        const int sectorCount = 20;
-        const int stackCount = 20;
+        const int sectorCount = 50;
+        const int stackCount = 50;
 
         float sectorStep = DirectX::XM_2PI / (float)sectorCount;
         float stackStep = DirectX::XM_PI / (float)stackCount;
@@ -288,7 +294,9 @@ namespace Tofino
             }
         }
         
-        return std::vector<Mesh>({ (Mesh(vertices, indices)) });
+        Mesh mesh(vertices, indices);
+        mesh.Init(RendererDevice);
+        return std::vector<Mesh>({ std::move(mesh) }); // RVO 
     }
 
     std::vector<Mesh> MeshLoader::LoadModel(const std::string& filename, const float scale)
@@ -296,6 +304,10 @@ namespace Tofino
         ModelReader mr;
         mr.ReadModelFile(filename, scale);
 
+        for(auto& mesh : mr.meshes)
+        {
+            mesh.Init(RendererDevice);
+        }
         return std::move(mr.meshes);
     }
 
@@ -323,6 +335,7 @@ namespace Tofino
         ReadNode(scene->mRootNode, scene, tr);
 
         // Normalize
+        // Center = (0, 0, 0), Cube length = 2, range [-1, 1] 
         Vector3 vmin(1000, 1000, 1000);
         Vector3 vmax(-1000, -1000, -1000);
         for (auto& mesh : meshes)
@@ -339,15 +352,14 @@ namespace Tofino
         }
 
         float dx = vmax.x - vmin.x, dy = vmax.y - vmin.y, dz = vmax.z - vmin.z;
-        float dl = XMMax(XMMax(dx, dy), dz);
-        float cx = (vmax.x + vmin.x) * 0.5f, cy = (vmax.y + vmin.y) * 0.5f,
-            cz = (vmax.z + vmin.z) * 0.5f;
+        float longestFactor = XMMax(XMMax(dx, dy), dz);
+        Vector3 center = (vmax + vmin) * 0.5f;
 
-        for (auto& mesh : meshes) {
-            for (auto& v : mesh.GetVertexBuffer().GetData()) {
-                v.pos.x = (v.pos.x - cx) / dl;
-                v.pos.y = (v.pos.y - cy) / dl;
-                v.pos.z = (v.pos.z - cz) / dl;
+        for (auto& mesh : meshes) 
+        {
+            for (auto& v : mesh.GetVertexBuffer().GetData()) 
+            {
+                v.pos = 2.0f * (v.pos - center) / longestFactor;
             }
         }
 

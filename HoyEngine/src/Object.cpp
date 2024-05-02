@@ -32,8 +32,7 @@ namespace Tofino
 	{
 		m_constBuffer.Init(device);
 
-		if (!HasComponent<TransformComponent>()) 
-			AddComponent<TransformComponent>(TransformComponent());
+		if (!HasComponent<TransformComponent>()) AddComponent<TransformComponent>();
 
 		auto& transform = GetComponent<TransformComponent>();
 		const Vector3 center = transform.Translation;

@@ -82,22 +82,23 @@ void MeteorGenerator::GenerateMeteors(Tofino::Scene* targetScene)
 		Meteor& meteor = targetScene->CreateObject<Meteor>("meteor-" + std::to_string(m_meteorPool.size()));
 
 		const int index = s_uniformDistribution(s_engine) % 4;
-		const auto& meteorTemplate = m_meteorTemplates[index];
+		const auto& meteorData = m_meteorTemplates[index];
 
 		meteor.GetComponent<TransformComponent>().Translation =
 			Vector3(s_uniformDistribution(s_engine) - 100.0f, s_uniformDistribution(s_engine) - 100.0f, 100.0f);
 		meteor.GetComponent<TransformComponent>().Scale = Vector3(5.0f);
 
 		// copy template's data, but it only reads the file once
-		meteor.AddComponent<MeshComponent>(MeshComponent{ meteorTemplate.MeshData });
+		meteor.AddComponent<MeshComponent>();
+		meteor.GetComponent<MeshComponent>().Meshes = meteorData.MeshData;
 
 		// hack : because only one of the templates have 2 meshes and need texture for the second mesh
-		meteor.GetComponent<MeshComponent>().Meshes.back().GetMaterial().SetAlbedoMap(meteorTemplate.Textures[0]);
-		meteor.GetComponent<MeshComponent>().Meshes.back().GetMaterial().SetHeightMap(meteorTemplate.Textures[1]);
-		meteor.GetComponent<MeshComponent>().Meshes.back().GetMaterial().SetNormalMap(meteorTemplate.Textures[2]);
+		meteor.GetComponent<MeshComponent>().Meshes.back().GetMaterial().SetAlbedoMap(meteorData.Textures[0]);
+		meteor.GetComponent<MeshComponent>().Meshes.back().GetMaterial().SetHeightMap(meteorData.Textures[1]);
+		meteor.GetComponent<MeshComponent>().Meshes.back().GetMaterial().SetNormalMap(meteorData.Textures[2]);
 		meteor.SetAllMeshMaterialFactors(Vector4(0.0f), 0.1f, 0.1f);
 
-		meteor.AddComponent<PhysicsComponent>(PhysicsComponent());
+		meteor.AddComponent<PhysicsComponent>();
 		meteor.GetComponent<PhysicsComponent>().Velocity =
 			Vector3(s_uniformDistribution(s_engine) * 0.1f, s_uniformDistribution(s_engine) * 0.1f, s_uniformDistribution(s_engine) - 100.0f);
 

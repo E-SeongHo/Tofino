@@ -62,17 +62,14 @@ namespace Tofino
 		void DestroyObject(Object* object);
 
 		template<typename T>
-		void AddComponentOf(const ObjectID objID, const T& componentData)
+		void AddComponentOf(const ObjectID objID)
 		{
-			assert(m_componentManager);
-
-			m_componentManager->AddComponent(objID, std::move(componentData));
+			m_componentManager->AddComponent<T>(objID);
 		}
 		template<>
-		void AddComponentOf<MeshComponent>(const ObjectID objID, const MeshComponent& componentData);
+		void AddComponentOf<MeshComponent>(const ObjectID objID);
 		template<>
-		void AddComponentOf<PhysicsComponent>(const ObjectID objID, const PhysicsComponent& componentData);
-
+		void AddComponentOf<PhysicsComponent>(const ObjectID objID);
 
 		template<typename T>
 		T& GetComponentOf(const ObjectID objID)
