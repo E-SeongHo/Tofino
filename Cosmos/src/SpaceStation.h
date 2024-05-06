@@ -14,6 +14,8 @@ public:
 	// Called every frame
 	void Update(float deltaTime) override;
 
+	void OnCollisionDetected(Tofino::Collision& collision);
+
 private:
 	float m_angularAccer = 30.0f;
 

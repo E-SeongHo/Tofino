@@ -55,6 +55,7 @@ void Cosmos::RenderGUI()
 {
     ImGui::NewFrame();
     ImGui::Begin("Scene Control");
+    ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("Rendering Camera"))

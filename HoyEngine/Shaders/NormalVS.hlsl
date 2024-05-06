@@ -1,6 +1,7 @@
 
 #include "Common.hlsli"
 
+// Not support for Instanced Object 
 cbuffer ModelConstBuffer : register(b0)
 {
     matrix world;

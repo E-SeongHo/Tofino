@@ -16,6 +16,9 @@ SpaceStation::SpaceStation(Tofino::Scene* scene, const std::string name, const b
     GetComponent<MeshComponent>().Meshes = MeshLoader::LoadModel(directory + "SpaceStation.fbx");
 
     AddComponent<PhysicsComponent>();
+    GetComponent<PhysicsComponent>().Mass = 2000.0f;
+    GetComponent<PhysicsComponent>().Collider.BindCollisionEvent(std::bind(&SpaceStation::OnCollisionDetected, this, std::placeholders::_1));
+
 	// Since Assimp failed to find appropriate textures
     {
         Texture bodyAlbedo2(
@@ -50,4 +53,16 @@ void SpaceStation::Update(float deltaTime)
 
     rotation += Vector3(0.0f, 0.0f, m_angularAccer * deltaTime);
     m_updateFlag = true;
+}
+
+void SpaceStation::OnCollisionDetected(Tofino::Collision& collision)
+{
+    //GetComponent<TransformComponent>().Translation -= collision.dt * GetComponent<PhysicsComponent>().Velocity;
+
+    //auto& myPhysics = GetComponent<PhysicsComponent>();
+    //float totalMass = myPhysics.Mass + collision.mass;
+
+    //// elastic collision
+    //myPhysics.Velocity =
+    //    (myPhysics.Velocity * (myPhysics.Mass - collision.mass) + collision.velocity * collision.mass * 2.0f) / totalMass;
 }

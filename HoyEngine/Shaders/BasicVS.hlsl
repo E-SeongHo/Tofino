@@ -9,13 +9,17 @@ cbuffer ModelConstBuffer : register(b0)
 {
 	matrix world;
 	matrix worldIT;
-	int activeAlbedoMap;
-	int activeNormalMap;
-	int activeHeightMap;
-	int padding;
 };
 
-cbuffer MaterialStatus : register(b1)
+cbuffer ObjectStatus : register(b1)
+{
+    int isInstanced;
+    int activeAlbedoMap;
+    int activeNormalMap;
+    int activeHeightMap;
+}
+
+cbuffer MaterialStatus : register(b5)
 {
     float4 baseColor;
     float roughness;
@@ -38,23 +42,34 @@ struct PSInput
 	float3 tangent : TANGENT; // World Space
 };
 
-PSInput main( BasicVertexInput input )
+struct ModelBufferData
+{
+    matrix worldInstance;
+    matrix worldITInstance;
+};
+
+StructuredBuffer<ModelBufferData> instanceData : register(t20);
+
+PSInput main( BasicVertexInput input, uint instID : SV_InstanceID)
 {
 	PSInput output;
-	
+
+    matrix World = isInstanced ? instanceData[instID].worldInstance : world;
+    matrix WorldIT = isInstanced ? instanceData[instID].worldITInstance : worldIT;
+
 	// normal
 	float4 Nmodel = float4(input.normal, 0.0f);
-	float3 Nworld = mul(Nmodel, worldIT).xyz;
+    float3 Nworld = mul(Nmodel, WorldIT).xyz;
 	Nworld = normalize(Nworld);
 
 	// tangent
 	float4 Tmodel = float4(input.tangent, 0.0f);
-	float3 Tworld = mul(Tmodel, world).xyz;
+	float3 Tworld = mul(Tmodel, World).xyz;
 	Tworld = normalize(Tworld);
 
 	// vertex position
 	float4 pos = float4(input.pos, 1.0f);
-	pos = mul(pos, world);
+	pos = mul(pos, World);
     output.posWorld = pos.xyz;
 
 	// height mapping (in world space)

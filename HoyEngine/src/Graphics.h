@@ -10,6 +10,7 @@ namespace Tofino
     class Geometry;
     class Mesh;
     class Object;
+    class InstanceGroup;
 
     using Microsoft::WRL::ComPtr;
     class Graphics
@@ -45,6 +46,7 @@ namespace Tofino
         Graphics() = default;
 
         void Draw(Object* object);
+        void DrawInstanced(InstanceGroup* instanced);
         void DrawNormal(Object* object);
         void PostProcess();
 

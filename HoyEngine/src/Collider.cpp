@@ -8,7 +8,7 @@
 namespace Tofino
 {
     Collider::Collider(const Vector3& lowerBound, const Vector3& upperBound)
-        : m_boundingBox(Vector3(-1.0f), Vector3(1.0f)),
+        : m_boundingBox(lowerBound, upperBound),
           m_constBuffer(ConstantBuffer<ColliderBuffer>(VERTEX_SHADER | PIXEL_SHADER, 0))
 	{
 		// Even though it only needs position of Vertex, just simply use basicInputLayout
@@ -78,8 +78,8 @@ namespace Tofino
         m.Translation(translation);
         m_constBuffer.GetData().world = m.Transpose();
 
-        m_boundingBox.m_lowerBound += translation;
-        m_boundingBox.m_upperBound += translation;
+        /*m_boundingBox.m_lowerBound += translation;
+        m_boundingBox.m_upperBound += translation;*/
     }
 
     void Collider::Scale(const Vector3& scale)
@@ -92,8 +92,8 @@ namespace Tofino
         m._33 = scale.z;
         m_constBuffer.GetData().world = m.Transpose();
 
-        m_boundingBox.m_lowerBound = Vector3::Transform(Vector3(-1.0f), Matrix::CreateScale(scale));
-        m_boundingBox.m_upperBound = Vector3::Transform(Vector3(1.0f), Matrix::CreateScale(scale));
+       /* m_boundingBox.m_lowerBound = Vector3::Transform(Vector3(-1.0f), Matrix::CreateScale(scale));
+        m_boundingBox.m_upperBound = Vector3::Transform(Vector3(1.0f), Matrix::CreateScale(scale));*/
     }
 
     void Collider::UpdateConstBuffer(ComPtr<ID3D11DeviceContext>& context)
@@ -107,21 +107,15 @@ namespace Tofino
         m_isColliding = false;
     }
 
-    bool Collider::CheckCollision(const Collider& other) const
+    bool Collider::CheckCollision(Collider& other)
     {
         if (this == &other) return false;
 
-        Vector3 aMin = m_boundingBox.m_lowerBound;
-        Vector3 aMax = m_boundingBox.m_upperBound;
+        Vector3 aMin = GetLowerBound();
+        Vector3 aMax = GetUpperBound();
 
-        Vector3 bMin = other.m_boundingBox.m_lowerBound;
-        Vector3 bMax = other.m_boundingBox.m_upperBound;
-
-        //std::cout << aMin.x << " " << aMin.y << " " << aMin.z << std::endl;
-        //std::cout << aMax.x << " " << aMax.y << " " << aMax.z << std::endl;
-
-        //std::cout << bMin.x << " " << bMin.y << " " << bMin.z << std::endl;
-        //std::cout << bMax.x << " " << bMax.y << " " << bMax.z << std::endl;
+        Vector3 bMin = other.GetLowerBound();
+        Vector3 bMax = other.GetUpperBound();
 
         if (aMax.x < bMin.x || aMin.x > bMax.x) return false;
         if (aMax.y < bMin.y || aMin.y > bMax.y) return false;
@@ -129,10 +123,10 @@ namespace Tofino
         return true;
     }
 
-    void Collider::OnCollisionDetected()
+    void Collider::OnCollisionDetected(Collision& collision)
     {
         m_isColliding = true;
 
-        // m_collisionFunction();
+        if (m_collisionCallback) m_collisionCallback(collision);
     }
 }

@@ -7,6 +7,7 @@
 #include "ConstantBuffer.h"
 #include "ComponentManager.h"
 #include "HashStringManager.h"
+#include "InstanceGroup.h"
 
 namespace Tofino
 {
@@ -104,7 +105,7 @@ namespace Tofino
 			{
 				auto& transform = transforms.Get(obj->GetID());
 				obj->UpdateWorldMatrix(Math::Transformer(transform));
-				obj->UpdateConstBuffer(RendererContext);
+				if(!obj->m_isInstancing) obj->UpdateConstBuffer(RendererContext);
 
 				if(HasComponentOf<PhysicsComponent>(obj->GetID()))
 				{
@@ -115,9 +116,14 @@ namespace Tofino
 			}
 		}
 
+		for(const auto& instanceGroup : m_instanceGroups)
+		{
+			instanceGroup->UpdateBuffer(RendererContext);
+		}
+
 		// Check Collision ( brute force )
-		std::vector<PhysicsComponent*> collisionPair;
-		collisionPair.reserve(MAX_OBJECTS);
+		std::vector<CollisionPair> collisionPairs;
+		collisionPairs.reserve(MAX_OBJECTS);
 
 		for(auto& p1 : physics)
 		{
@@ -125,19 +131,19 @@ namespace Tofino
 			{
 				if(p1.Collider.CheckCollision(p2.Collider))
 				{
-					collisionPair.push_back(&p1);
+					collisionPairs.push_back({ &p1, Collision{p2.Velocity, p2.Mass, deltaTime} });
 					break;
 				}
 			}
 		}
 
-		for (auto& pair : collisionPair)
+		for (auto& pair : collisionPairs)
 		{
 			// some narrow phase check can be added here
-			pair->Collider.OnCollisionDetected();
+			pair.actor->Collider.OnCollisionDetected(pair.collision);
 		}
 		
-		// Meshes
+		// Meshes (when material has changed)
 		auto& meshes = m_componentManager->GetContainer<MeshComponent>();
 		for(auto& meshComponent : meshes)
 		{
@@ -170,7 +176,7 @@ namespace Tofino
 	void Scene::AddComponentOf<PhysicsComponent>(const ObjectID objID)
 	{
 		assert(HasComponentOf<TransformComponent>(objID));
-		assert(HasComponentOf<MeshComponent>(objID));
+		assert(HasComponentOf<MeshComponent>(objID)); 
 
 		m_componentManager->AddComponent<PhysicsComponent>(objID);
 
@@ -192,14 +198,8 @@ namespace Tofino
 			}
 		}
 
-		std::cout << "lower bound : " << vmin << std::endl;
-		std::cout << "upper bound : " << vmax << std::endl;
-
-		/*Vector3 scale = GetComponentOf<TransformComponent>(objID).Scale;
-		Matrix invScale = Matrix::CreateScale(Vector3(1.0f / scale.x, 1.0f / scale.y, 1.0f / scale.z));
-
-		vmin = Vector3::Transform(vmin, invScale);
-		vmax = Vector3::Transform(vmax, invScale);*/
+		/*std::cout << "lower bound : " << vmin << std::endl;
+		std::cout << "upper bound : " << vmax << std::endl;*/
 
 		if (vmin == Vector3(-1.0f) && vmax == Vector3(1.0f)) return;
 
@@ -208,5 +208,24 @@ namespace Tofino
 		// TODO : Register To BVH
 	}
 
+	template <>
+	MeshComponent& Scene::GetComponentOf<MeshComponent>(const ObjectID objID)
+	{
+		return m_objectMap[objID]->m_isInstancing ?
+			m_objectMap[objID]->m_owningGroup->GetSharingMeshComponent() :
+			m_componentManager->GetComponent<MeshComponent>(objID);
+	}
 
+	template <>
+	bool Scene::HasComponentOf<MeshComponent>(const ObjectID objID)
+	{
+		return m_objectMap[objID]->m_isInstancing ? 
+			true :
+			m_componentManager->HasComponent<MeshComponent>(objID);
+	}
+
+	void Scene::RegisterObject(Object* obj)
+	{
+		m_objectMap[obj->GetID()] = obj;
+	}
 }

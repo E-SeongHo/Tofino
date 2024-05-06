@@ -22,12 +22,13 @@ namespace Tofino
         ds.CPUAccessFlags = 0; // 0 if no CPU access is necessary.
         ds.StructureByteStride = sizeof(Vertex);
 
-        D3D11_SUBRESOURCE_DATA data = { 0 };
-        data.pSysMem = m_vertices.data();
-        data.SysMemPitch = 0;
-        data.SysMemSlicePitch = 0;
+        D3D11_SUBRESOURCE_DATA initData;
+        ZeroMemory(&initData, sizeof(initData));
+        initData.pSysMem = m_vertices.data();
+        initData.SysMemPitch = 0;
+        initData.SysMemSlicePitch = 0;
 
-        ThrowIfFailed(device->CreateBuffer(&ds, &data, m_buffer.GetAddressOf()));
+        ThrowIfFailed(device->CreateBuffer(&ds, &initData, m_buffer.GetAddressOf()));
     }
 
     void VertexBuffer::Bind(ComPtr<ID3D11DeviceContext>& context) const

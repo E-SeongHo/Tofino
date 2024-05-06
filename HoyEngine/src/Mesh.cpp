@@ -6,7 +6,7 @@ namespace Tofino
 
     Mesh::Mesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
         : m_vertexBuffer(vertices), m_indexBuffer(indices),
-        m_material(VERTEX_SHADER | PIXEL_SHADER, 1)
+        m_material(VERTEX_SHADER | PIXEL_SHADER, 5)
     {
     }
 

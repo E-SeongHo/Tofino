@@ -18,11 +18,11 @@ namespace Tofino
 		}
 		AABB Combine(const AABB& other);
 
+		Vector3 m_lowerBound;
+		Vector3 m_upperBound;
 	private:
 		friend class Collider;
 
-		Vector3 m_lowerBound;
-		Vector3 m_upperBound;
 	};
 	
 }

@@ -28,8 +28,9 @@ namespace Tofino
 
 	struct PhysicsComponent
 	{
-		Vector3 Velocity = { 0.0f, 0.0f, 0.0f };
 		Collider Collider;
+		float Mass = 1.0f;
+		Vector3 Velocity = { 0.0f, 0.0f, 0.0f };
 	};
 
 	// Template meta programming

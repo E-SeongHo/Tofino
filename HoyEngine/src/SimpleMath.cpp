@@ -44,13 +44,19 @@ namespace Tofino
 
 	std::ostream& operator<<(std::ostream& os, const Vector4& v)
 	{
-		os << "x: " << v.x << "y: " << v.y << "z: " << v.z << "w: " << v.w;
+		os << "x: " << v.x << ", y: " << v.y << ", z: " << v.z << ", w: " << v.w;
 		return os;
 	}
 
 	std::ostream& operator<<(std::ostream& os, const Vector3& v)
 	{
-		os << "x: " << v.x << "y: " << v.y << "z: " << v.z;
+		os << "x: " << v.x << ", y: " << v.y << ", z: " << v.z;
+		return os;
+	}
+
+	std::ostream& operator<<(std::ostream& os, const Vector2& v)
+	{
+		os << "x: " << v.x << ", y: " << v.y;
 		return os;
 	}
 

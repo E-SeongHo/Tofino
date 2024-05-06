@@ -15,6 +15,8 @@ namespace Tofino
 
 	std::ostream& operator<<(std::ostream& os, const Vector4& v);
 	std::ostream& operator<<(std::ostream& os, const Vector3& v);
+	std::ostream& operator<<(std::ostream& os, const Vector2& v);
+
 	std::ostream& operator<<(std::ostream& os, const Matrix& m);
 
 	// Matrix operations

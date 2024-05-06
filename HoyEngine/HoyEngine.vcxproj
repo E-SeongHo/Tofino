@@ -24,6 +24,7 @@
     <ClCompile Include="src\IndexBuffer.cpp" />
     <ClCompile Include="src\EnvMap.cpp" />
     <ClCompile Include="src\Input.cpp" />
+    <ClCompile Include="src\InstanceGroup.cpp" />
     <ClCompile Include="src\Material.cpp" />
     <ClCompile Include="src\MeshLoader.cpp" />
     <ClCompile Include="src\Scene.cpp" />
@@ -53,7 +54,9 @@
     <ClInclude Include="src\Input.h" />
     <ClInclude Include="src\ConstantBuffer.h" />
     <ClInclude Include="src\EnvMap.h" />
+    <ClInclude Include="src\InstanceGroup.h" />
     <ClInclude Include="src\MeshLoader.h" />
+    <ClInclude Include="src\Octree.h" />
     <ClInclude Include="src\Scene.h" />
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\Graphics.h" />
@@ -65,6 +68,7 @@
     <ClInclude Include="src\ShaderManager.h" />
     <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\SimpleMath.h" />
+    <ClInclude Include="src\StructuredBuffer.h" />
     <ClInclude Include="src\VertexBuffer.h" />
     <ClInclude Include="src\Texture.h" />
   </ItemGroup>

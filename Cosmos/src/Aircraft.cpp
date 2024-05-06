@@ -17,6 +17,8 @@ Aircraft::Aircraft(Tofino::Scene* scene, const std::string name, const bool isHi
     GetComponent<MeshComponent>().Meshes = MeshLoader::LoadModel(directory + "E 45 Aircraft_obj.obj");
 
 	AddComponent<PhysicsComponent>();
+    GetComponent<PhysicsComponent>().Mass = 500.0f;
+    GetComponent<PhysicsComponent>().Collider.BindCollisionEvent(std::bind(&Aircraft::OnCollisionDetected, this, std::placeholders::_1));
 
     // Since Assimp failed to find appropriate textures
     {
@@ -97,4 +99,16 @@ void Aircraft::Update(float deltaTime)
     }
 
     camera->Camera.SetOrigin(location + cameraOffset);
+}
+
+void Aircraft::OnCollisionDetected(Tofino::Collision& collision)
+{
+    //GetComponent<TransformComponent>().Translation -= collision.dt * GetComponent<PhysicsComponent>().Velocity;
+
+    //auto& myPhysics = GetComponent<PhysicsComponent>();
+    //float totalMass = myPhysics.Mass + collision.mass;
+
+    //// elastic collision
+    //myPhysics.Velocity =
+    //    (myPhysics.Velocity * (myPhysics.Mass - collision.mass) + collision.velocity * collision.mass * 2.0f) / totalMass;
 }

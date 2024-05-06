@@ -14,6 +14,7 @@
 namespace Tofino
 {
 	class Object;
+	class InstanceGroup;
 	class Camera;
 	class EnvMap;
 
@@ -40,24 +41,50 @@ namespace Tofino
 		void SetMainObject(Object& object);
 
 		template<typename T_OBJECT>
-		T_OBJECT& CreateObject(const std::string& name)
+		T_OBJECT& CreateObject(const std::string& name, bool instancing = false)
 		{
 			static_assert(std::is_base_of<Object, T_OBJECT>::value);
 			assert(m_objects.size() <= MAX_OBJECTS);
 
 			m_objects.push_back(std::make_unique<T_OBJECT>(this, name, true));
-			m_objects.back()->Init(RendererDevice);
+			m_objects.back().get()->Init(RendererDevice);
+
+			if (!instancing) m_standardObjects.push_back(m_objects.back().get());
 
 			return *static_cast<T_OBJECT*>(m_objects.back().get());
 		}
 
+		template<typename T_OBJECT>
+		InstanceGroup& CreateObjectInstances(MeshComponent sharedMeshComponent, std::string groupName, int numInstances)
+		{
+			m_instanceGroups.push_back(std::make_unique<InstanceGroup>(sharedMeshComponent, groupName, numInstances));
+
+			std::vector<Object*> instances;
+			instances.reserve(numInstances);
+
+			for(int i = 0; i < numInstances; i++)
+			{
+				auto& obj = CreateObject<T_OBJECT>(groupName + std::to_string(i), true);
+				instances.push_back(&obj);
+				m_objects.back().get()->Init(RendererDevice);
+			}
+
+			m_instanceGroups.back()->m_instances = std::move(instances);
+			m_instanceGroups.back()->Init(RendererDevice);
+
+			return *m_instanceGroups.back().get();
+		}
+		
 		void AddLight(Light* light);
 		void AddSkybox(EnvMap* skybox);
 
 		virtual void Update(float deltaTime);
 
-		EnvMap& GetSkybox() const										{ return *m_skybox.get();	}
-		std::vector<std::unique_ptr<Object>>& GetAllSceneObjects()		{ return m_objects;			}
+		EnvMap& GetSkybox() const											{ return *m_skybox.get();	}
+		const auto& GetAllSceneObjects() const	{ return m_objects;			}
+		const auto& GetStandardObjects() const			{ return m_standardObjects; }
+		const auto& GetInstanceGroups() const { return m_instanceGroups; }
+
 		ConstantBuffer<GlobalBuffer>& GetSceneConstBuffer()				{ return m_constBuffer;		}
 		void DestroyObject(Object* object);
 
@@ -76,11 +103,17 @@ namespace Tofino
 		{
 			return m_componentManager->GetComponent<T>(objID);
 		}
+		template<>
+		MeshComponent& GetComponentOf<MeshComponent>(const ObjectID objID);
+
 		template<typename T>
 		bool HasComponentOf(const ObjectID objID)
 		{
 			return m_componentManager->HasComponent<T>(objID);
 		}
+		template<>
+		bool HasComponentOf<MeshComponent>(const ObjectID objID);
+
 
 		template<typename... Components>
 		std::vector<Object*> Query(ComponentGroup<Components...>)
@@ -103,6 +136,8 @@ namespace Tofino
 			return queryObjects;
 		}
 
+		void RegisterObject(Object* obj);
+
 	protected:
 		friend class Graphics;
 
@@ -112,6 +147,11 @@ namespace Tofino
 		Object* m_mainObject = nullptr; // check object == m_mainObject When destroy object
 
 		std::vector<std::unique_ptr<Object>> m_objects;
+		std::unordered_map<ObjectID, Object*> m_objectMap; // id to ptr
+
+		std::vector<Object*> m_standardObjects;
+		std::vector<std::unique_ptr<InstanceGroup>> m_instanceGroups;
+
 		std::vector<Light*> m_lights; // TODO: light will be derived from object soon(to draw emitting)
 
 		// I still don't think it needs to be ref counted, and neither managed with pointer

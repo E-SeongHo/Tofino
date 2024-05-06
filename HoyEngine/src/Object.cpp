@@ -12,7 +12,8 @@
 namespace Tofino
 {
 	Object::Object(Scene* scene, const std::string name, const bool isHittable)
-		: m_constBuffer(ConstantBuffer<ModelBuffer>(VERTEX_SHADER | PIXEL_SHADER, 0))
+		: m_modelConstBuffer(ConstantBuffer<ModelBuffer>(VERTEX_SHADER, 0)),
+		  m_statusConstBuffer(ConstantBuffer<ObjectStatusBuffer>(VERTEX_SHADER | PIXEL_SHADER, 1))
 	{
 		hitEnabled = isHittable;
 		m_name = name;
@@ -26,13 +27,16 @@ namespace Tofino
 
 		m_id = HashStringManager::GenerateHash(m_name);
 		m_scene = scene;
+
+		m_scene->RegisterObject(this);
 	}
 
 	void Object::Init(ComPtr<ID3D11Device>& device)
 	{
-		m_constBuffer.Init(device);
+		m_modelConstBuffer.Init(device);
+		m_statusConstBuffer.Init(device);
 
-		if (!HasComponent<TransformComponent>()) AddComponent<TransformComponent>();
+		//if (!HasComponent<TransformComponent>()) AddComponent<TransformComponent>();
 
 		auto& transform = GetComponent<TransformComponent>();
 		const Vector3 center = transform.Translation;
@@ -58,9 +62,9 @@ namespace Tofino
 			m_updateFlag += ImGui::SliderFloat3("Rotation", &transform.Rotation.x, -360.0f, 360.0f);
 			m_updateFlag += ImGui::SliderFloat3("Scale", &transform.Scale.x, 0.0f, 10.0f);
 
-			m_updateFlag += ImGui::CheckboxFlags("Albedo Map", &m_constBuffer.GetData().activeAlbedoMap, 1);
-			m_updateFlag += ImGui::CheckboxFlags("Height Map", &m_constBuffer.GetData().activeHeightMap, 1);
-			m_updateFlag += ImGui::CheckboxFlags("Normal Map", &m_constBuffer.GetData().activeNormalMap, 1);
+			m_updateFlag += ImGui::CheckboxFlags("Albedo Map", &m_statusConstBuffer.GetData().activeAlbedoMap, 1);
+			m_updateFlag += ImGui::CheckboxFlags("Height Map", &m_statusConstBuffer.GetData().activeHeightMap, 1);
+			m_updateFlag += ImGui::CheckboxFlags("Normal Map", &m_statusConstBuffer.GetData().activeNormalMap, 1);
 
 			if(HasComponent<CameraComponent>())
 			{
@@ -77,7 +81,7 @@ namespace Tofino
 					if (ImGui::TreeNode((std::string("Part ") + std::to_string(i)).c_str()))
 					{
 						auto& materialData = meshes[i].GetMaterial().GetMaterialStatus();
-						if (!m_constBuffer.GetData().activeAlbedoMap)
+						if (!m_statusConstBuffer.GetData().activeAlbedoMap)
 						{
 							meshUpdateFlag += ImGui::ColorPicker4("BaseColor", &materialData.baseColor.x, flags, NULL);
 						}
@@ -98,12 +102,12 @@ namespace Tofino
 	{
 		Matrix worldColumn = worldRow.Transpose();
 
-		m_constBuffer.GetData().world = worldColumn;
-		m_constBuffer.GetData().worldIT = worldColumn;
-		m_constBuffer.GetData().worldIT.Translation(Vector3(0.0f));
-		m_constBuffer.GetData().worldIT.Invert().Transpose();
+		m_modelConstBuffer.GetData().world = worldColumn;
+		m_modelConstBuffer.GetData().worldIT = worldColumn;
+		m_modelConstBuffer.GetData().worldIT.Translation(Vector3(0.0f));
+		m_modelConstBuffer.GetData().worldIT.Invert().Transpose();
 
-		// hack : will be completed after build BVH system
+		// hack : will be completed after building BVH system
 		m_boundingSphere.Center = worldRow.Translation();
 
 		Vector3 scale = { worldRow._11, worldRow._22, worldRow._33 };
@@ -126,12 +130,14 @@ namespace Tofino
 
 	ConstantBuffer<ModelBuffer>& Object::GetConstBuffer()
 	{
-		return m_constBuffer;
+		return m_modelConstBuffer;
 	}
 
 	void Object::UpdateConstBuffer(ComPtr<ID3D11DeviceContext>& context)
 	{
-		m_constBuffer.Update(context);
+		m_modelConstBuffer.Update(context);
+		m_statusConstBuffer.Update(context);
+
 		m_updateFlag = false;
 	}
 

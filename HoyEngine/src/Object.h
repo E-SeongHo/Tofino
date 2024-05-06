@@ -11,19 +11,20 @@ namespace Tofino
 {
 	using ObjectID = uint32_t;
 
-	class Mesh;
+	class InstanceGroup;
 
-	// 16Byte align
+	struct ObjectStatusBuffer
+	{
+		int isInstanced = 0;
+		int activeAlbedoMap = 1;
+		int activeNormalMap = 1;
+		int activeHeightMap = 1;
+	};
+
 	struct ModelBuffer // Must Store as a Column Matrix 
 	{
 		Matrix world;
 		Matrix worldIT;
-
-		// for test 
-		int activeAlbedoMap = 1;
-		int activeNormalMap = 1;
-		int activeHeightMap = 1;
-		int padding;
 	};
 
 	class Hittable
@@ -40,10 +41,10 @@ namespace Tofino
 		virtual ~Object() = default;
 
 		virtual void Init(ComPtr<ID3D11Device>& device);
-		void Bind(ComPtr<ID3D11DeviceContext>& context) const { m_constBuffer.Bind(context); }
+		void Bind(ComPtr<ID3D11DeviceContext>& context) const { m_modelConstBuffer.Bind(context); m_statusConstBuffer.Bind(context); }
 		void RenderGUI();
 
-		Matrix GetWorldMatrix()				{ return m_constBuffer.GetData().world.Transpose(); }
+		Matrix GetWorldMatrix()				{ return m_modelConstBuffer.GetData().world.Transpose(); }
 		void UpdateWorldMatrix(const Matrix worldRow);
 		void UpdateWorldMatrix();
 
@@ -64,19 +65,27 @@ namespace Tofino
 
 		template<typename T>
 		void AddComponent()		{ m_scene->AddComponentOf<T>(m_id);				}
+
 		template<typename T>
 		T& GetComponent()		{ return m_scene->GetComponentOf<T>(m_id);		}
+
 		template<typename T>
 		bool HasComponent()		{ return m_scene->HasComponentOf<T>(m_id);		}
 
 	protected:
-		std::string m_name;
-		bool m_updateFlag = false;
+		friend class InstanceGroup;
+		friend class Scene; 
 
 		ObjectID m_id;
+		std::string m_name;
 		Scene* m_scene;
 
-		ConstantBuffer<ModelBuffer> m_constBuffer;
+		ConstantBuffer<ModelBuffer> m_modelConstBuffer;
+		ConstantBuffer<ObjectStatusBuffer> m_statusConstBuffer;
+		bool m_updateFlag = false;
+
+		bool m_isInstancing = false;
+		InstanceGroup* m_owningGroup = nullptr;
 	};
 
 }

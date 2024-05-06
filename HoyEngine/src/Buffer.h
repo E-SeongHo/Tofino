@@ -6,6 +6,16 @@
 
 namespace Tofino
 {
+	// ConstBuffer, StructuredBuffer
+	enum BUFFER_SHADER_BIND_FLAG
+	{
+		NONE = 0,
+		VERTEX_SHADER = 1 << 0,
+		GEOMETRY_SHADER = 1 << 1,
+		PIXEL_SHADER = 1 << 2,
+		COMPUTE_SHADER = 1 << 3
+	};
+
 	class Buffer
 	{
 	public:

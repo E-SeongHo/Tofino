@@ -10,6 +10,7 @@ Meteor::Meteor(Tofino::Scene* scene, const std::string name, const bool isHittab
 	:Object(scene, name, isHittable)
 {
 	AddComponent<TransformComponent>();
+
 	transform = &GetComponent<TransformComponent>();
 }
 
@@ -32,7 +33,20 @@ void Meteor::Update(float deltaTime)
 	m_updateFlag = true;
 }
 
-void Meteor::SetAngularVelocity(const Tofino::Vector3& velocity)
+void Meteor::OnCollisionDetected(Tofino::Collision& collision)
 {
-	m_angularVelocity = velocity;
+	//if (collision.mass != GetComponent<PhysicsComponent>().Mass) return;
+
+	GetComponent<TransformComponent>().Translation -= 5.0f * collision.dt * GetComponent<PhysicsComponent>().Velocity;
+
+	auto& myPhysics = GetComponent<PhysicsComponent>();
+	myPhysics.Collider.Translate(GetComponent<TransformComponent>().Translation);
+
+	float totalMass = myPhysics.Mass + collision.mass;
+
+	// Elastic Collision
+	// https://en.wikipedia.org/wiki/Elastic_collision
+	myPhysics.Velocity =
+		(myPhysics.Velocity * (myPhysics.Mass - collision.mass) + collision.velocity * collision.mass * 2.0f) / totalMass;
+
 }

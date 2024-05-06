@@ -210,7 +210,7 @@ namespace Tofino
 		case AppMode::PLAY:
 			m_currentScene->SetPlay(true);
 			Input::CenterCursor(m_window, m_width, m_height);
-			//ShowCursor(false); // temporary commented
+			ShowCursor(false); // temporary commented
 			break;
 		}
 	}
@@ -241,6 +241,8 @@ namespace Tofino
 		{
 			if (picking && pickingObject != nullptr) // on same plane
 			{
+				std::cout << pickingObject->GetComponent<PhysicsComponent>().Collider.GetLowerBound() << std::endl;
+				std::cout << pickingObject->GetComponent<PhysicsComponent>().Collider.GetUpperBound() << std::endl;
 				Matrix view = m_editorCamera->GetViewMatrix();
 				Matrix projection = m_editorCamera->GetProjectionMatrix();
 				Matrix unprojection = projection.Invert() * view.Invert();

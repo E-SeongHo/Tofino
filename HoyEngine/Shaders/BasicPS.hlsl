@@ -11,17 +11,15 @@ Texture2D envBrdfLookUpTexture : register(t12);
 SamplerState g_sampler : register(s0);
 SamplerState g_clampSampler : register(s1);
 
-cbuffer ModelConstBuffer : register(b0)
+cbuffer ObjectStatus : register(b1)
 {
-	matrix world;
-	matrix worldIT;
-	int activeAlbedoMap;
-	int activeNormalMap;
-	int activeHeightMap;
-	int padding;
-};
+    int isInstanced;
+    int activeAlbedoMap;
+    int activeNormalMap;
+    int activeHeightMap;
+}
 
-cbuffer MaterialStatus : register(b1)
+cbuffer MaterialStatus : register(b5)
 {
     float4 baseColor;
     float roughness;

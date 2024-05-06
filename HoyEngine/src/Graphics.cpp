@@ -13,6 +13,7 @@
 #include "Object.h"
 #include "Components.h"
 #include "MeshLoader.h"
+#include "InstanceGroup.h"
 
 namespace Tofino
 {
@@ -241,6 +242,19 @@ namespace Tofino
         }
     }
 
+    void Graphics::DrawInstanced(InstanceGroup* instanced)
+    {
+        instanced->Bind(m_context);
+
+        std::vector<Mesh>& instanceMeshes = instanced->GetSharingMeshComponent().Meshes;
+
+        for(Mesh& mesh : instanceMeshes)
+        {
+            mesh.Bind(m_context);
+            m_context->DrawIndexedInstanced(mesh.GetIndexCount(), instanced->GetInstanceCount(), 0, 0, 0);
+        }
+    }
+
     void Graphics::DrawNormal(Object* object)
     {
         object->Bind(m_context);
@@ -290,13 +304,19 @@ namespace Tofino
     	scene->GetSceneConstBuffer().Bind(m_context);
         scene->GetSkybox().BindIBLSRVs(m_context); // for objects
 
-        // TODO: Batch Rendering (take advantage of ECS)
-    	for (const auto& object : scene->m_objects) 
+        // Instancing
+        for(const auto& group : scene->m_instanceGroups)
         {
-    		Draw(object.get());
+            DrawInstanced(group.get());
         }
 
-        // Draw Normals
+        // Standard Drawing
+    	for (auto object : scene->m_standardObjects) 
+        {
+    		Draw(object);
+        }
+
+        // Draw Normals ( only for standard objects ) 
         /*m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
         m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
