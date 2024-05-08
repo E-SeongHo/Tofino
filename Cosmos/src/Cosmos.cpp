@@ -70,10 +70,12 @@ void Cosmos::RenderGUI()
         ImGui::Text(" ");
     }
 
-    /*if (ImGui::CollapsingHeader("Rendering Options"))
+    if (ImGui::CollapsingHeader("Rendering Options"))
     {
-        ImGui::Checkbox("Show WireFrame", &m_wireRendering);
-    }*/
+        ImGui::Checkbox("Show WireFrame", &RendererInstance.m_wireRendering);
+        ImGui::Checkbox("Draw Normals", &RendererInstance.m_drawNormals);
+        ImGui::Checkbox("Draw Colliders", &RendererInstance.m_drawColliders);
+    }
 
     /*if (ImGui::CollapsingHeader("Light"))
     {

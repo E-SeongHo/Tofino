@@ -27,6 +27,7 @@ namespace Tofino
 
 	private:
 		friend class Scene;
+		friend class BattleScene;
 
 		Scene* m_scene;
 		std::string m_name;

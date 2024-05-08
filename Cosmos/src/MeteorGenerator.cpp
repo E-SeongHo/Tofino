@@ -189,12 +189,13 @@ void MeteorGenerator::GenerateMeteors(Tofino::Scene* targetScene)
 	// Add Components
 	for(auto instanceGroup : m_meteorGroups)
 	{
-		for(auto meteor : instanceGroup->GetInstances())
+		for(auto meteorObj : instanceGroup->GetInstances())
 		{
+			Meteor* meteor = static_cast<Meteor*>(meteorObj);
 			meteor->AddComponent<PhysicsComponent>();
 
 			Vector3 angularVelocity = Vector3(s_uniformDistribution(s_engine) * 0.25f, s_uniformDistribution(s_engine) * 0.25f, s_uniformDistribution(s_engine) * 0.25f);
-			static_cast<Meteor*>(meteor)->SetAngularVelocity(angularVelocity);
+			meteor->SetAngularVelocity(angularVelocity);
 		}
 	}
 

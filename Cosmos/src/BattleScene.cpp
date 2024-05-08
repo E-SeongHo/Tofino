@@ -6,30 +6,51 @@
 #include "Aircraft.h"
 #include "MeshLoader.h"
 #include "SpaceStation.h"
+#include "ECSObject.h"
+#include "InstanceGroup.h"
 
 using namespace Tofino;
 
 BattleScene::BattleScene()
 {
     //Scene();
-    /*{
+   /* {
+        int cnt = 0;
         for(int k = 0; k < 20; k++)
+        {
             for(int i = 0; i < 20; i++)
+            {
                 for(int j = 0; j < 50; j++)
                 {
                     Vector3 Location = { (j-25) * 2.0f, (i-10) * 5.0f, (k-10) * 2.0f };
-                    Object* obj = m_scene->CreateEmptyObject("ECS Object" + std::to_string((k * 50 * 20) + (i*50) + j));
-                    obj->AddComponent<MeshComponent>(MeshComponent({ MeshLoader::LoadSphere() }));
-                    obj->AddComponent<TransformComponent>(TransformComponent());
-                    obj->GetComponent<TransformComponent>().Translation = Location;
-                    obj->SetAllMeshMaterialFactors(Vector4(0.0f), 0.1f, 0.5f);
+                    Object& obj = CreateObject<ECSObject>("ECS Object" + std::to_string(cnt++));
+                    obj.GetComponent<TransformComponent>().Translation = Location;
                 }
+            }
+        }
     }*/
+
+    // GPU Instancing 20000 objects 
+	MeshComponent mesh = MeshComponent{ MeshLoader::LoadSphere() };
+    auto& group = CreateObjectInstances<ECSObject>(mesh, std::string("ECS Instance"), 20000);
+
+    int cnt = 0;
+    for (int k = 0; k < 20; k++)
+    {
+        for (int i = 0; i < 20; i++)
+        {
+            for (int j = 0; j < 50; j++)
+            {
+                Vector3 Location = { (j - 25) * 2.0f, (i - 10) * 5.0f, (k - 10) * 2.0f };
+                group.m_instances[cnt++]->GetComponent<TransformComponent>().Translation = Location;
+            }
+        }
+    }
 
     //Meteor& obj = m_scene->CreateObject<Meteor>("Lava Rock");
 
     // Meteors
-    m_meteorGenerator.GenerateMeteors(this);
+    //m_meteorGenerator.GenerateMeteors(this);
 
     SpaceStation& spaceStation = CreateObject<SpaceStation>("Space Station");
 

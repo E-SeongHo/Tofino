@@ -33,6 +33,9 @@
     <ClInclude Include="src\BattleScene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\ECSObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Cosmos.cpp">
@@ -51,6 +54,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\BattleScene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ECSObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

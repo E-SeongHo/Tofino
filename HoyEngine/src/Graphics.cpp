@@ -316,38 +316,45 @@ namespace Tofino
     		Draw(object);
         }
 
-        // Draw Normals ( only for standard objects ) 
-        /*m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
-        m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-
-        m_context->VSSetShader(ShaderManager::GetInstance().normalVS.Get(), 0, 0);
-        m_context->GSSetShader(ShaderManager::GetInstance().normalGS.Get(), 0, 0);
-        m_context->PSSetShader(ShaderManager::GetInstance().normalPS.Get(), 0, 0);
-
-        scene->GetSceneConstBuffer().Bind(m_context);
-
-        for (auto& object : scene->GetAllSceneObjects())
+        // Draw Normals ( only for standard objects )
+        if(m_drawNormals)
         {
-            DrawNormal(object.get());
+	        
+	        m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
+	        m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+	        m_context->VSSetShader(ShaderManager::GetInstance().normalVS.Get(), 0, 0);
+	        m_context->GSSetShader(ShaderManager::GetInstance().normalGS.Get(), 0, 0);
+	        m_context->PSSetShader(ShaderManager::GetInstance().normalPS.Get(), 0, 0);
+
+	        scene->GetSceneConstBuffer().Bind(m_context);
+
+	        for (auto& object : scene->GetAllSceneObjects())
+	        {
+	            DrawNormal(object.get());
+	        }
+	        m_context->GSSetShader(nullptr, 0, 0);
         }
-        m_context->GSSetShader(nullptr, 0, 0);*/
 
         // Draw Colliders
-        m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
-        m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-
-        m_context->VSSetShader(ShaderManager::GetInstance().colliderVS.Get(), 0, 0);
-        m_context->PSSetShader(ShaderManager::GetInstance().colliderPS.Get(), 0, 0);
-
-        scene->GetSceneConstBuffer().Bind(m_context);
-
-        auto& physicsContainer = scene->m_componentManager->GetContainer<PhysicsComponent>();
-        for(auto& physicsComponent : physicsContainer)
+        if(m_drawColliders)
         {
-            auto& collider = physicsComponent.Collider;
-            collider.Bind(m_context);
+	        m_context->IASetInputLayout(ShaderManager::GetInstance().basicInputLayout.Get());
+	        m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
-            m_context->Draw(32, 0);
+	        m_context->VSSetShader(ShaderManager::GetInstance().colliderVS.Get(), 0, 0);
+	        m_context->PSSetShader(ShaderManager::GetInstance().colliderPS.Get(), 0, 0);
+
+	        scene->GetSceneConstBuffer().Bind(m_context);
+
+	        auto& physicsContainer = scene->m_componentManager->GetContainer<PhysicsComponent>();
+	        for(auto& physicsComponent : physicsContainer)
+	        {
+	            auto& collider = physicsComponent.Collider;
+	            collider.Bind(m_context);
+
+	            m_context->Draw(32, 0);
+	        }
         }
 
         // Draw Skybox

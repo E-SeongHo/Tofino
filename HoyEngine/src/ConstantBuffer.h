@@ -32,7 +32,7 @@ namespace Tofino
 			ZeroMemory(&initData, sizeof(initData));
 			initData.pSysMem = &m_data;
 			initData.SysMemPitch = 0;
-			initData.SysMemSlicePitch = 0;
+			initData.SysMemSlicePitch = 0; 
 
 			ThrowIfFailed(device->CreateBuffer(&cbDesc, &initData, m_buffer.GetAddressOf()));
 		}

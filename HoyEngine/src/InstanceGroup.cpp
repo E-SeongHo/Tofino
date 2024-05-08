@@ -43,11 +43,16 @@ namespace Tofino
 				auto& src = instance->m_modelConstBuffer.GetData();
 
 				m_modelBuffers.GetData()[i] = src;
+				instance->m_updateFlag = false;
 				flag = true;
 			}
 		}
 
-		if(flag) m_modelBuffers.Update(context);
+		if (flag)
+		{
+			m_modelBuffers.Update(context);
+			std::cout << "it's going to be a big update" << std::endl;
+		}
 
 		for(auto& mesh : m_meshComponent.Meshes)
 		{

@@ -3,7 +3,7 @@
 #include <vector>
 #include <unordered_map>
 
-#define MAX_OBJECTS 10000
+#define MAX_OBJECTS 30000
 
 namespace Tofino
 {

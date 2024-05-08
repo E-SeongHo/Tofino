@@ -85,7 +85,10 @@ namespace Tofino
         Geometry* m_copySquare = nullptr; // square mesh for copy
         ComPtr<ID3D11RasterizerState> m_toneState;
 
+    public:
         bool m_wireRendering = false;
+        bool m_drawNormals = false;
+        bool m_drawColliders = false;
     };
 
     #define RendererInstance Graphics::GetInstance()

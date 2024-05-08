@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\BattleScene.h" />
+    <ClInclude Include="src\ECSObject.h" />
     <ClInclude Include="src\Meteor.h" />
     <ClInclude Include="src\MeteorGenerator.h" />
     <ClInclude Include="src\SpaceStation.h" />
@@ -28,6 +29,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\BattleScene.cpp" />
+    <ClCompile Include="src\ECSObject.cpp" />
     <ClCompile Include="src\Meteor.cpp" />
     <ClCompile Include="src\MeteorGenerator.cpp" />
     <ClCompile Include="src\SpaceStation.cpp" />

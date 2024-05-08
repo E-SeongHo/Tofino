@@ -12,6 +12,7 @@ namespace Tofino
 	using ObjectID = uint32_t;
 
 	class InstanceGroup;
+	struct Collision;
 
 	struct ObjectStatusBuffer
 	{
@@ -49,10 +50,12 @@ namespace Tofino
 		void UpdateWorldMatrix();
 
 		virtual void Update(float deltaTime);
+		virtual void OnCollisionDetected(Collision& collision) {}
 
 		ConstantBuffer<ModelBuffer>& GetConstBuffer();
 		void UpdateConstBuffer(ComPtr<ID3D11DeviceContext>& context);
 
+		// TODO : MeshComponent
 		void SetMeshMaterialFactors(
 			const Vector4 baseColor, const float roughness, const float metallic, const int partNumber);
 		void SetAllMeshMaterialFactors(
@@ -77,8 +80,8 @@ namespace Tofino
 		friend class Scene; 
 
 		ObjectID m_id;
-		std::string m_name;
 		Scene* m_scene;
+		std::string m_name;
 
 		ConstantBuffer<ModelBuffer> m_modelConstBuffer;
 		ConstantBuffer<ObjectStatusBuffer> m_statusConstBuffer;

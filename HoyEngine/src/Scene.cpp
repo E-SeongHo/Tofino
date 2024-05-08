@@ -15,6 +15,7 @@ namespace Tofino
 		:m_constBuffer(ConstantBuffer<GlobalBuffer>(VERTEX_SHADER | GEOMETRY_SHADER | PIXEL_SHADER, 10)),
 		 m_componentManager(std::make_unique<ComponentManager>())
 	{
+		m_objects.reserve(MAX_OBJECTS);
 	}
 
 	Scene::~Scene()
@@ -204,6 +205,9 @@ namespace Tofino
 		if (vmin == Vector3(-1.0f) && vmax == Vector3(1.0f)) return;
 
 		GetComponentOf<PhysicsComponent>(objID).Collider = Collider(vmin, vmax);
+		GetComponentOf<PhysicsComponent>(objID).Collider.BindCollisionEvent(
+			std::bind(&Object::OnCollisionDetected, m_objectMap[objID], std::placeholders::_1)
+		);
 
 		// TODO : Register To BVH
 	}
@@ -225,7 +229,7 @@ namespace Tofino
 	}
 
 	void Scene::RegisterObject(Object* obj)
-	{
+	{ 
 		m_objectMap[obj->GetID()] = obj;
 	}
 }
