@@ -46,7 +46,7 @@ namespace Tofino
 
 			int last = m_components.size() - 1;
 			int idx = m_indexMap[objID];
-
+			
 			m_components[idx] = m_components[last];
 			m_components.pop_back();
 
@@ -63,6 +63,9 @@ namespace Tofino
 
 		auto begin()	{ return m_components.begin(); }
 		auto end()		{ return m_components.end();   }
+		auto cbegin() const { return m_components.cbegin(); }
+		auto cend() const   { return m_components.cend(); }
+		auto size()				{ return m_components.size();  }
 
 	private:
 		std::vector<T> m_components;

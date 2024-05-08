@@ -1,4 +1,8 @@
 
+#include <thread>
+#include <mutex>
+#include <iostream>
+
 #include "Scene.h"
 
 #include "Object.h"
@@ -8,6 +12,9 @@
 #include "ComponentManager.h"
 #include "HashStringManager.h"
 #include "InstanceGroup.h"
+
+static int s_numThreads = std::thread::hardware_concurrency();
+static std::mutex s_mutex;
 
 namespace Tofino
 {
@@ -63,6 +70,8 @@ namespace Tofino
 
 	void Scene::Update(float deltaTime) 
 	{
+		m_currentFrameDeltaTime = deltaTime;
+
 		if(m_play)
 		{
 			for (const auto& obj : m_objects)
@@ -81,68 +90,9 @@ namespace Tofino
 			}
 		}
 
-		// Moves
-		auto& physics = m_componentManager->GetContainer<PhysicsComponent>();
-		auto& transforms = m_componentManager->GetContainer<TransformComponent>();
-		std::vector<Object*> physicsObjects = Query(ComponentGroup<PhysicsComponent, TransformComponent>{});
+		MoveSystem();
 
-		if(m_play)
-		{
-			// Apply velocity
-			for(Object* obj : physicsObjects)
-			{
-				auto& physicsComponent = physics.Get(obj->GetID());
-
-				Vector3 dv = physicsComponent.Velocity * deltaTime;
-				transforms.Get(obj->GetID()).Translation += dv;
-
-				obj->SetUpdateFlag(true);
-			}
-		}
-
-		for(const auto& obj : m_objects)
-		{
-			if (obj->IsUpdateFlagSet()) // means either changed transform or texture mapping condition
-			{
-				auto& transform = transforms.Get(obj->GetID());
-				obj->UpdateWorldMatrix(Math::Transformer(transform));
-				if(!obj->m_isInstancing) obj->UpdateConstBuffer(RendererContext);
-
-				if(HasComponentOf<PhysicsComponent>(obj->GetID()))
-				{
-					GetComponentOf<PhysicsComponent>(obj->GetID()).Collider.Scale(transform.Scale);
-					GetComponentOf<PhysicsComponent>(obj->GetID()).Collider.Translate(transform.Translation);
-					GetComponentOf<PhysicsComponent>(obj->GetID()).Collider.UpdateConstBuffer(RendererContext);
-				}
-			}
-		}
-
-		for(const auto& instanceGroup : m_instanceGroups)
-		{
-			instanceGroup->UpdateBuffer(RendererContext);
-		}
-
-		// Check Collision ( brute force )
-		std::vector<CollisionPair> collisionPairs;
-		collisionPairs.reserve(MAX_OBJECTS);
-
-		for(auto& p1 : physics)
-		{
-			for(auto& p2 : physics)
-			{
-				if(p1.Collider.CheckCollision(p2.Collider))
-				{
-					collisionPairs.push_back({ &p1, Collision{p2.Velocity, p2.Mass, deltaTime} });
-					break;
-				}
-			}
-		}
-
-		for (auto& pair : collisionPairs)
-		{
-			// some narrow phase check can be added here
-			pair.actor->Collider.OnCollisionDetected(pair.collision);
-		}
+		CollisionSystem();
 		
 		// Meshes (when material has changed)
 		auto& meshes = m_componentManager->GetContainer<MeshComponent>();
@@ -231,5 +181,110 @@ namespace Tofino
 	void Scene::RegisterObject(Object* obj)
 	{ 
 		m_objectMap[obj->GetID()] = obj;
+	}
+
+	void Scene::MoveSystem()
+	{
+		auto& physics = m_componentManager->GetContainer<PhysicsComponent>();
+		auto& transforms = m_componentManager->GetContainer<TransformComponent>();
+		std::vector<Object*> physicsObjects = Query(ComponentGroup<PhysicsComponent, TransformComponent>{});
+
+		if (m_play)
+		{
+			// Apply velocity
+			for (Object* obj : physicsObjects)
+			{
+				auto& physicsComponent = physics.Get(obj->GetID());
+
+				Vector3 dv = physicsComponent.Velocity * m_currentFrameDeltaTime;
+				transforms.Get(obj->GetID()).Translation += dv;
+
+				obj->SetUpdateFlag(true);
+			}
+		}
+
+		for (const auto& obj : m_objects)
+		{
+			if (obj->IsUpdateFlagSet()) // means either changed transform or texture mapping condition
+			{
+				auto& transform = transforms.Get(obj->GetID());
+				obj->UpdateWorldMatrix(Math::Transformer(transform));
+				if (!obj->m_isInstancing) obj->UpdateConstBuffer(RendererContext);
+
+				// physics is asleep when object update flag doesn't set
+				if (HasComponentOf<PhysicsComponent>(obj->GetID()))
+				{
+					GetComponentOf<PhysicsComponent>(obj->GetID()).Collider.Scale(transform.Scale);
+					GetComponentOf<PhysicsComponent>(obj->GetID()).Collider.Translate(transform.Translation);
+					GetComponentOf<PhysicsComponent>(obj->GetID()).Collider.UpdateConstBuffer(RendererContext);
+				}
+			}
+		}
+
+		for (const auto& instanceGroup : m_instanceGroups)
+		{
+			instanceGroup->UpdateBuffer(RendererContext);
+		}
+	}
+
+	void Scene::CollisionSystem()
+	{
+		auto& physics = m_componentManager->GetContainer<PhysicsComponent>();
+
+		std::vector<CollisionPair> collisionPairs;
+		collisionPairs.reserve(MAX_OBJECTS);
+
+		std::vector<std::thread> threads;
+		//s_numThreads = 8;
+
+		int amountPerThread = physics.size() / s_numThreads;
+
+		for (int i = 0; i < s_numThreads; i++)
+		{
+			auto begin = i * amountPerThread;
+			auto end = begin + amountPerThread;
+
+			if (i == s_numThreads - 1) end = physics.size();
+
+			threads.push_back(std::thread(
+				&Scene::CheckCollisions, this, std::ref(physics), std::ref(collisionPairs), begin, end
+			));
+		}
+
+		for (auto& thread : threads)
+		{
+			thread.join();
+		}
+
+		for (auto& pair : collisionPairs)
+		{
+			// some narrow phase check can be added here
+			pair.actor->Collider.OnCollisionDetected(pair.collision);
+		}
+	}
+
+	void Scene::CheckCollisions(ComponentContainer<PhysicsComponent>& physics, std::vector<CollisionPair>& result, const int begin, const int end)
+	{
+		std::vector<CollisionPair> collisionPairs;
+
+		for (auto it = physics.begin() + begin; it != physics.begin() + end; ++it)
+		{
+			for (auto jt = it + 1; jt != physics.end(); ++jt)
+			{
+				auto& p1 = *it;
+				auto& p2 = *jt;
+				if (p1.Collider.CheckCollision(p2.Collider))
+				{
+					result.push_back({ &p1, Collision{p2.Velocity, p2.Mass, m_currentFrameDeltaTime} });
+					result.push_back({ &p2, Collision{p1.Velocity, p1.Mass, m_currentFrameDeltaTime} });
+				}
+			}
+		}
+
+		std::lock_guard<std::mutex> lock(s_mutex);
+		for(auto pair : collisionPairs)
+		{
+			result.push_back(pair);
+		}
 	}
 }

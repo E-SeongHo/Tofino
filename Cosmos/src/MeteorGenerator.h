@@ -59,7 +59,7 @@ public:
 	MeteorGenerator();
 	~MeteorGenerator() = default;
 
-	void ShootMeteors();
+	void ShootMeteors(const Tofino::Vector3& playerLocation);
 	void GenerateMeteors(Tofino::Scene* targetScene);
 
 private:
@@ -67,6 +67,6 @@ private:
 	std::vector<Meteor*> m_meteorPool;
 	std::vector<Tofino::InstanceGroup*> m_meteorGroups;
 
-	const int m_maxPool = 1000;
+	const int m_maxPool = 2000;
 	Grid m_grid;
 };

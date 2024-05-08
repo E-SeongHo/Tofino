@@ -210,7 +210,7 @@ namespace Tofino
 		case AppMode::PLAY:
 			m_currentScene->SetPlay(true);
 			Input::CenterCursor(m_window, m_width, m_height);
-			ShowCursor(false); // temporary commented
+			//ShowCursor(false); // temporary commented
 			break;
 		}
 	}

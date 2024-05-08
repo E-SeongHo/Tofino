@@ -83,9 +83,9 @@ namespace Tofino
 		EnvMap& GetSkybox() const											{ return *m_skybox.get();	}
 		const auto& GetAllSceneObjects() const	{ return m_objects;			}
 		const auto& GetStandardObjects() const			{ return m_standardObjects; }
-		const auto& GetInstanceGroups() const { return m_instanceGroups; }
+		const auto& GetInstanceGroups() const{ return m_instanceGroups; }
 
-		ConstantBuffer<GlobalBuffer>& GetSceneConstBuffer()				{ return m_constBuffer;		}
+		ConstantBuffer<GlobalBuffer>& GetSceneConstBuffer()				{ return m_constBuffer;	}
 		void DestroyObject(Object* object);
 
 		template<typename T>
@@ -138,11 +138,18 @@ namespace Tofino
 
 		void RegisterObject(Object* obj);
 
+	private:
+		void MoveSystem();
+		void CollisionSystem();
+
+		void CheckCollisions(ComponentContainer<PhysicsComponent>& physics, std::vector<CollisionPair>& result, const int begin, const int end);
+
 	protected:
 		friend class Graphics;
 
 		std::string m_name;
 		bool m_play = false;
+		float m_currentFrameDeltaTime;
 		Camera* m_playCamera = nullptr;
 		Object* m_mainObject = nullptr; // check object == m_mainObject When destroy object
 
@@ -162,6 +169,7 @@ namespace Tofino
 		std::unique_ptr<EnvMap> m_skybox = nullptr;
 
 		std::unique_ptr<ComponentManager> m_componentManager;
+
 	};
 
 }

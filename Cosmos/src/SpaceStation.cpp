@@ -32,7 +32,7 @@ SpaceStation::SpaceStation(Tofino::Scene* scene, const std::string name, const b
     GetComponent<MeshComponent>().Meshes[0].SetMaterialFactors(Vector4(0.0f), 0.1, 0.9f);
 
     transform = &GetComponent<TransformComponent>();
-    transform->Translation = Vector3(0.0f, 0.0f, 0.0f);
+    transform->Translation = Vector3(-50.0f, 5.0f, 15.0f);
 	transform->Scale = Vector3(20.0f);
 }
 

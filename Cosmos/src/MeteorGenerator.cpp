@@ -92,25 +92,29 @@ MeteorGenerator::MeteorGenerator()
 	}
 }
 
-void MeteorGenerator::ShootMeteors()
+void MeteorGenerator::ShootMeteors(const Vector3& playerLocation)
 {
-	/*for(auto& meteor : m_meteorPool)
-	{
-		auto [x, y, z] = m_grid.GetRandomFreeSpace();
-		meteor->GetComponent<TransformComponent>().Translation = Vector3(x, y, z);
-		meteor->GetComponent<PhysicsComponent>().Velocity =
-			Vector3(s_uniformDistribution(s_engine) * 0.1f, s_uniformDistribution(s_engine) * 0.1f, s_uniformDistribution(s_engine) - 500.0f);
-	}*/
+	Vector2 rangeX = Vector2(playerLocation.x - 50.0f, playerLocation.x + 50.0f);
+	Vector2 rangeY = Vector2(playerLocation.y - 50.0f, playerLocation.y + 50.0f);
+
+	std::uniform_int_distribution<int> xDistribution(rangeX.x, rangeX.y);
+	std::uniform_int_distribution<int> yDistribution(rangeY.x, rangeY.y);
 
 	for (auto instanceGroup : m_meteorGroups)
 	{
 		for (auto meteor : instanceGroup->GetInstances())
 		{
 			auto [x, y, z] = m_grid.GetRandomFreeSpace();
-			meteor->GetComponent<TransformComponent>().Translation = Vector3(x,y, z );
-			meteor->GetComponent<TransformComponent>().Scale = Vector3(5.0f);
+			auto& transform = meteor->GetComponent<TransformComponent>();
+			transform.Translation = Vector3(x,y, z );
+			transform.Scale = Vector3(5.0f);
+
+			Vector2 targetXY = Vector2(xDistribution(s_engine), yDistribution(s_engine));
+			Vector2 dirXY = targetXY - Vector2(transform.Translation.x, transform.Translation.y);
+			dirXY.Normalize();
+
 			meteor->GetComponent<PhysicsComponent>().Velocity =
-				Vector3(s_uniformDistribution(s_engine) * 0.1f, s_uniformDistribution(s_engine) * 0.1f, s_uniformDistribution(s_engine) - 500.0f);
+				Vector3(dirXY.x * 10.0f, dirXY.y * 10.0f, s_uniformDistribution(s_engine) - 500.0f);
 		}
 	}
 
@@ -119,54 +123,6 @@ void MeteorGenerator::ShootMeteors()
 void MeteorGenerator::GenerateMeteors(Tofino::Scene* targetScene)
 {
 	m_meteorPool.reserve(m_maxPool);
-
-	//{
-	//	const auto& meteorData = m_meteorTemplates[1];
-	//	Meteor& meteor = targetScene->CreateObject<Meteor>("meteor-" + std::to_string(m_meteorPool.size()));
-	//	meteor.GetComponent<TransformComponent>().Translation =
-	//		Vector3(-20.0f, 0.0f, 50.0f);
-	//	meteor.GetComponent<TransformComponent>().Scale = Vector3(5.0f);
-
-	//	// copy template's data, but it only reads the file once
-	//	meteor.AddComponent<MeshComponent>();
-	//	meteor.GetComponent<MeshComponent>().Meshes = meteorData.MeshData;
-
-	//	// hack : because only one of the templates have 2 meshes and need texture for the second mesh
-	//	meteor.GetComponent<MeshComponent>().Meshes.back().GetMaterial().SetAlbedoMap(meteorData.Textures[0]);
-	//	meteor.GetComponent<MeshComponent>().Meshes.back().GetMaterial().SetHeightMap(meteorData.Textures[1]);
-	//	meteor.GetComponent<MeshComponent>().Meshes.back().GetMaterial().SetNormalMap(meteorData.Textures[2]);
-	//	meteor.SetAllMeshMaterialFactors(Vector4(0.0f), 0.1f, 0.1f);
-
-	//	meteor.AddComponent<PhysicsComponent>();
-	//	meteor.GetComponent<PhysicsComponent>().Velocity =
-	//		Vector3(10.0f, 0.0f, -5.0f);
-	//	meteor.GetComponent<PhysicsComponent>().Collider.BindCollisionEvent(
-	//		std::bind(&Meteor::OnCollisionDetected, &meteor, std::placeholders::_1));
-	//}
-
-	//{
-	//	const auto& meteorData = m_meteorTemplates[1];
-	//	Meteor& meteor = targetScene->CreateObject<Meteor>("meteor-" + std::to_string(m_meteorPool.size()));
-	//	meteor.GetComponent<TransformComponent>().Translation =
-	//		Vector3(20.0f, 0.0f, 50.0f);
-	//	meteor.GetComponent<TransformComponent>().Scale = Vector3(5.0f);
-
-	//	// copy template's data, but it only reads the file once
-	//	meteor.AddComponent<MeshComponent>();
-	//	meteor.GetComponent<MeshComponent>().Meshes = meteorData.MeshData;
-
-	//	// hack : because only one of the templates have 2 meshes and need texture for the second mesh
-	//	meteor.GetComponent<MeshComponent>().Meshes.back().GetMaterial().SetAlbedoMap(meteorData.Textures[0]);
-	//	meteor.GetComponent<MeshComponent>().Meshes.back().GetMaterial().SetHeightMap(meteorData.Textures[1]);
-	//	meteor.GetComponent<MeshComponent>().Meshes.back().GetMaterial().SetNormalMap(meteorData.Textures[2]);
-	//	meteor.SetAllMeshMaterialFactors(Vector4(0.0f), 0.1f, 0.1f);
-
-	//	meteor.AddComponent<PhysicsComponent>();
-	//	meteor.GetComponent<PhysicsComponent>().Velocity =
-	//		Vector3(0.0f, 0.0f, -5.0f);
-	//	meteor.GetComponent<PhysicsComponent>().Collider.BindCollisionEvent(
-	//		std::bind(&Meteor::OnCollisionDetected, &meteor, std::placeholders::_1));
-	//}
 
 	// Create Instances 
 	for(auto& data : m_meteorTemplates)
@@ -199,40 +155,6 @@ void MeteorGenerator::GenerateMeteors(Tofino::Scene* targetScene)
 		}
 	}
 
-	ShootMeteors();
-
-	//for(int i = 0; i < m_maxPool; i++)
-	//{
-	//	Meteor& meteor = targetScene->CreateObject<Meteor>("meteor-" + std::to_string(m_meteorPool.size()));
-
-	//	const int index = s_uniformDistribution(s_engine) % 4;
-	//	const auto& meteorData = m_meteorTemplates[index];
-
-	//	auto [x, y, z] = m_grid.GetRandomFreeSpace();
-	//	meteor.GetComponent<TransformComponent>().Translation = Vector3(x, y, z);
-	//	meteor.GetComponent<TransformComponent>().Scale = Vector3(5.0f);
-
-	//	// copy template's data, but it only reads the file once
-	//	meteor.AddComponent<MeshComponent>();
-	//	meteor.GetComponent<MeshComponent>().Meshes = meteorData.MeshData;
-
-	//	// hack : because only one of the templates have 2 meshes and need texture for the second mesh
-	//	meteor.GetComponent<MeshComponent>().Meshes.back().GetMaterial().SetAlbedoMap(meteorData.Textures[0]);
-	//	meteor.GetComponent<MeshComponent>().Meshes.back().GetMaterial().SetHeightMap(meteorData.Textures[1]);
-	//	meteor.GetComponent<MeshComponent>().Meshes.back().GetMaterial().SetNormalMap(meteorData.Textures[2]);
-	//	meteor.SetAllMeshMaterialFactors(Vector4(0.0f), 0.1f, 0.1f);
-
-	//	meteor.AddComponent<PhysicsComponent>();
-	//	meteor.GetComponent<PhysicsComponent>().Velocity =
-	//		Vector3(s_uniformDistribution(s_engine) * 0.1f, s_uniformDistribution(s_engine) * 0.1f, s_uniformDistribution(s_engine) - 500.0f);
-	//	meteor.GetComponent<PhysicsComponent>().Mass = 50.0f;
-	//	meteor.GetComponent<PhysicsComponent>().Collider.BindCollisionEvent(
-	//		std::bind(&Meteor::OnCollisionDetected, &meteor, std::placeholders::_1));
-
-	//	Vector3 angularVelocity = Vector3(s_uniformDistribution(s_engine) * 0.25f, s_uniformDistribution(s_engine) * 0.25f, s_uniformDistribution(s_engine) * 0.25f);
-	//	meteor.SetAngularVelocity(angularVelocity);
-	//	 
-	//	m_meteorPool.push_back(&meteor);
-	//}
+	ShootMeteors(Vector3(0.0f));
 }
 

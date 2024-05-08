@@ -13,7 +13,7 @@ using namespace Tofino;
 
 BattleScene::BattleScene()
 {
-    //Scene();
+    // Drawing 20000 Objects
    /* {
         int cnt = 0;
         for(int k = 0; k < 20; k++)
@@ -31,7 +31,7 @@ BattleScene::BattleScene()
     }*/
 
     // GPU Instancing 20000 objects 
-	MeshComponent mesh = MeshComponent{ MeshLoader::LoadSphere() };
+	/*MeshComponent mesh = MeshComponent{ MeshLoader::LoadSphere() };
     auto& group = CreateObjectInstances<ECSObject>(mesh, std::string("ECS Instance"), 20000);
 
     int cnt = 0;
@@ -45,17 +45,13 @@ BattleScene::BattleScene()
                 group.m_instances[cnt++]->GetComponent<TransformComponent>().Translation = Location;
             }
         }
-    }
+    }*/
 
-    //Meteor& obj = m_scene->CreateObject<Meteor>("Lava Rock");
 
     // Meteors
-    //m_meteorGenerator.GenerateMeteors(this);
+    m_meteorGenerator.GenerateMeteors(this);
 
     SpaceStation& spaceStation = CreateObject<SpaceStation>("Space Station");
-
-    /*Object& obj = CreateObject<Object>("test cube");
-    obj.AddComponent<MeshComponent>(MeshComponent{ MeshLoader::LoadCube() });*/
 
     Aircraft& aircraft = CreateObject<Aircraft>("E-45 Aircraft");
     SetMainObject(aircraft);
@@ -84,9 +80,10 @@ void BattleScene::Update(float deltaTime)
     {
         timeElapsed += deltaTime;
 
-        if (timeElapsed > 20.0f)
+        if (timeElapsed > 15.0f)
         {
-            m_meteorGenerator.ShootMeteors();
+            Vector3 location = m_mainObject ? m_mainObject->GetComponent<TransformComponent>().Translation : Vector3(0.0f);
+            m_meteorGenerator.ShootMeteors(location);
             timeElapsed = 0.0f;
         }
     }
