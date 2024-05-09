@@ -16,7 +16,7 @@ public:
 	// Called every frame
 	void Update(float deltaTime) override;
 
-	void OnCollisionDetected(Tofino::Collision& collision);
+	void OnCollisionDetected(Tofino::Collision& collision) override;
 
 private:
 	float m_speed = 15.0f;

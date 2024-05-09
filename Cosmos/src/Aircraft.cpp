@@ -18,7 +18,6 @@ Aircraft::Aircraft(Tofino::Scene* scene, const std::string name, const bool isHi
 
 	AddComponent<PhysicsComponent>();
     GetComponent<PhysicsComponent>().Mass = 500.0f;
-    GetComponent<PhysicsComponent>().Collider.BindCollisionEvent(std::bind(&Aircraft::OnCollisionDetected, this, std::placeholders::_1));
 
     // Since Assimp failed to find appropriate textures
     {

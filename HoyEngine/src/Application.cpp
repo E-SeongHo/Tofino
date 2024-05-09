@@ -144,7 +144,7 @@ namespace Tofino
 			}
 			else
 			{
-				ImGui_ImplDX11_NewFrame(); // GUI 프레임 시작
+				ImGui_ImplDX11_NewFrame(); 
 				ImGui_ImplWin32_NewFrame();
 
 				RenderGUI();
@@ -152,7 +152,7 @@ namespace Tofino
 
 				Update(ImGui::GetIO().DeltaTime);
 				RendererInstance.RenderScene(m_currentScene);
-				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); // GUI 렌더링
+				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 				RendererInstance.Present();
 			}

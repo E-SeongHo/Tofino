@@ -17,7 +17,6 @@ SpaceStation::SpaceStation(Tofino::Scene* scene, const std::string name, const b
 
     AddComponent<PhysicsComponent>();
     GetComponent<PhysicsComponent>().Mass = 2000.0f;
-    GetComponent<PhysicsComponent>().Collider.BindCollisionEvent(std::bind(&SpaceStation::OnCollisionDetected, this, std::placeholders::_1));
 
 	// Since Assimp failed to find appropriate textures
     {

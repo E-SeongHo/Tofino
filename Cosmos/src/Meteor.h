@@ -16,7 +16,7 @@ public:
 
 	void SetAngularVelocity(const Tofino::Vector3& velocity) { m_angularVelocity = velocity; }
 
-	void OnCollisionDetected(Tofino::Collision& collision);
+	void OnCollisionDetected(Tofino::Collision& collision) override;
 
 private:
 	Tofino::TransformComponent* transform;
