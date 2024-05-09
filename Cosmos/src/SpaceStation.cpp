@@ -9,7 +9,7 @@ using namespace Tofino;
 SpaceStation::SpaceStation(Tofino::Scene* scene, const std::string name, const bool isHittable)
 	:Object(scene, name, isHittable)
 {
-    std::string directory = "D:/Workspace/3DModels/sci-fi-space-station/";
+    std::string directory = "./Assets/3DModels/sci-fi-space-station/";
 
     AddComponent<TransformComponent>();
     AddComponent<MeshComponent>();

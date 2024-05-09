@@ -40,7 +40,7 @@ Grid::Grid()
 MeteorGenerator::MeteorGenerator()
 {
 	{
-		std::string dir = "D:/Workspace/HoyEngine/Cosmos/Assets/Texture/columned-lava-rock-ue/";
+		std::string dir = "./Assets/Texture/columned-lava-rock-ue/";
 		Texture albedo = Texture(RendererDevice, dir + "columned-lava-rock_albedo.png", TextureType::ALBEDO);
 		Texture height = Texture(RendererDevice, dir + "columned-lava-rock_height.png", TextureType::HEIGHT);
 		Texture normal = Texture(RendererDevice, dir + "columned-lava-rock_normal-dx.png", TextureType::NORMAL);
@@ -55,7 +55,7 @@ MeteorGenerator::MeteorGenerator()
 	}
 
 	{
-		std::string dir = "D:/Workspace/HoyEngine/Cosmos/Assets/3DModels/the-old-moon/";
+		std::string dir = "./Assets/3DModels/the-old-moon/";
 		Texture albedo = Texture(RendererDevice, dir + "1_Base_color.jpg", TextureType::ALBEDO);
 		Texture normal = Texture(RendererDevice, dir + "1_Normal_DirectX.jpg", TextureType::NORMAL);
 
@@ -68,7 +68,7 @@ MeteorGenerator::MeteorGenerator()
 	}
 
 	{
-		std::string dir = "D:/Workspace/HoyEngine/Cosmos/Assets/3DModels/daphne-planetoid/";
+		std::string dir = "./Assets/3DModels/daphne-planetoid/";
 		Texture albedo = Texture(RendererDevice, dir + "1_Base_color.jpg", TextureType::ALBEDO);
 		Texture normal = Texture(RendererDevice, dir + "1_Normal_DirectX.jpg", TextureType::NORMAL);
 
@@ -81,7 +81,7 @@ MeteorGenerator::MeteorGenerator()
 	}
 
 	{
-		std::string dir = "D:/Workspace/HoyEngine/Cosmos/Assets/3DModels/asteroid/";
+		std::string dir = "./Assets/3DModels/asteroid/";
 		Texture albedo = Texture(RendererDevice, dir + "base.jpg", TextureType::ALBEDO);
 
 		MeteorData meteorTemp;

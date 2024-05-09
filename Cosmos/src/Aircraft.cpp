@@ -10,7 +10,7 @@ using namespace Tofino;
 Aircraft::Aircraft(Tofino::Scene* scene, const std::string name, const bool isHittable)
 	:Object(scene, name, isHittable)
 {
-    std::string directory = "D:/Workspace/3DModels/E-45-Aircraft/";
+    std::string directory = "./Assets/3DModels/E-45-Aircraft/";
 
 	AddComponent<TransformComponent>();
     AddComponent<MeshComponent>();
