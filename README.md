@@ -1,6 +1,4 @@
-
-
-##### Tofino Engine Features...
+## Features
 
 1. _**HDR Rendering Pipeline**_
 2. _**Entity-Component-System**_
@@ -12,11 +10,11 @@
 8. _**GUI connected**_
 
 
-### Get started
+## Get Started
 
-##### 1. Create Application 
+### 1. Create Application 
 
-1. Make a project, and Define CreateApplication() 
+1. Create a project, and define the `CreateApplication()` function
 
 Entry point is as follows (main.cpp)
 
@@ -51,8 +49,7 @@ Application* CreateApplication()
 
 ```
 
-cf) 
-you must use the Engine API only after Application::Init() called
+**Note:** you must use the Engine API only after `Application::Init()` has been called
 
 
 2. Set Scene to render
@@ -83,18 +80,19 @@ bool Cosmos::Init()
 
 ```
 
-##### 2. Application Modes
+### 2. Application Modes
 
 Tofino offers 3 application modes
 
-1. Edit Mode ( 'E' key )
-2. First Person Traversal Mode ( 'F' key )
-3. Play Mode ( 'P' key )
+1. Edit Mode ( `E` key )
+2. First Person Traversal Mode ( `F` key )
+3. Play Mode ( `P` key )
 
-##### 3. Create Object
+### 3. Create Object
 
-1. Define Tofino::Object base class in your project
-- initiate parent class (Object) appropriately
+1. Define Tofino::Object base class in your project  
+
+**Note:** Initialize parent class (Object) appropriately
 
 ``` cpp
 
@@ -119,7 +117,7 @@ public:
 
 ```
 
-3. Create Object by two ways 
+2. Create Object in two ways 
 
 ``` cpp
 // Scene.h
@@ -137,6 +135,11 @@ scene->CreateObject<SpaceStation>("name");
 scene->CreateObjectInstancs<SpaceStation>(mesh, "station instanced", 1000);
 
 ```
+
+
+
+
+
 
 
 
